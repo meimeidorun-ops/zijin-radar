@@ -229,6 +229,30 @@ td.r,th.r{text-align:right}
     </div>
   </section>
 
+<section id="flow-sec">
+  <div class="h2row"><h2>大家在買什麼、賣什麼</h2><span class="hint" id="flow-hint"></span></div>
+  <div data-mk="tw" class="flow-block">
+    <div class="flow-bar">
+      <span class="flag tw">TW</span><b>三大法人買賣超</b>
+      <div class="seg" role="group" aria-label="法人" id="flow-who">
+        <button data-k="all" aria-pressed="true">合計</button><button data-k="0" aria-pressed="false">外資</button><button data-k="1" aria-pressed="false">投信</button><button data-k="2" aria-pressed="false">自營商</button>
+      </div>
+    </div>
+    <div class="duo">
+      <div class="card"><h3><span class="flow-dot up-bg"></span>買超前 20</h3><div class="meta" id="flow-tw-meta"></div><div class="tscroll"><table id="flow-tw-buy"></table></div></div>
+      <div class="card"><h3><span class="flow-dot down-bg"></span>賣超前 20</h3><div class="meta">單位：億元（買賣超張數 × 當日收盤價）</div><div class="tscroll"><table id="flow-tw-sell"></table></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>法人資金流進／流出哪些產業</h3><div class="meta">各產業個股買賣超金額加總（億元），點產業看相關個股</div><div class="fi-wrap" id="flow-tw-ind"></div></div>
+  </div>
+  <div data-mk="us" class="flow-block">
+    <div class="flow-bar"><span class="flag us">US</span><b>帶量上漲／帶量下跌</b><span class="hint">美股沒有公開的法人買賣資料，這裡是推估</span></div>
+    <div class="duo">
+      <div class="card"><h3><span class="flow-dot up-bg"></span>搶買：上漲股成交值前 20</h3><div class="meta" id="flow-us-meta"></div><div class="tscroll"><table id="flow-us-buy"></table></div></div>
+      <div class="card"><h3><span class="flow-dot down-bg"></span>拋售：下跌股成交值前 20</h3><div class="meta">單位：億美元｜上漲時成交越大，通常代表買方越積極，反之亦然</div><div class="tscroll"><table id="flow-us-sell"></table></div></div>
+    </div>
+  </div>
+</section>
+
   <section data-mk="tw">
     <div class="h2row"><h2>台股 ETF 成交值前 10</h2><span class="hint">單位：億元，依所選期間</span></div>
     <div class="etf" id="etf"></div>
@@ -327,7 +351,7 @@ function buildTW(snap){
   const hasOTC=days.every(d=>data[d].otc);
   const stocks=Object.values(S).map(s=>{
     const l=s.cl[4], p=s.cl[3];
-    return {code:s.code,name:s.name,ind:s.ind,m:s.m,v:s.v,sum:sum0(s.v),last:l??null,
+    return {code:s.code,name:s.name,ind:s.ind,m:s.m,v:s.v,cl:s.cl,sum:sum0(s.v),last:l??null,
       d1:(l&&p)?+((l/p-1)*100).toFixed(2):null, d5:(l&&s.p0)?+((l/s.p0-1)*100).toFixed(2):null};
   });
   const etf=Object.values(E).map(e=>({...e,sum:sum0(e.v)}));
@@ -450,6 +474,7 @@ function notes(){
       ? `台股：含上市＋上櫃（標「櫃」的是上櫃股票）。上市來自臺灣證券交易所「各類指數日成交量值」與個股收盤行情，上櫃來自櫃買中心每日收盤行情（產業成交值由個股加總），最近 5 個交易日，週一到週五 15:52 自動更新。產業依證交所／櫃買中心分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`
       : `台股：每日資料載入失敗，目前直接向臺灣證券交易所抓最新 5 個交易日，<b>只有上市、未含上櫃</b>。產業依 TWSE 分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`,
     `美股：每天早上由排程自動更新（Nasdaq 公開資料），涵蓋成交值與市值最大的約 ${US.universe} 檔股票，成交值以「收盤價 × 成交量」估算，日期為美東時間。產業是依 Nasdaq 行業代碼整理的中文主題，部分大型股手動調整，與 GICS 略有不同。`,
+    `「大家在買什麼、賣什麼」：成交值本身分不出買賣（每筆成交都有一買一賣），所以台股用證交所／櫃買中心公布的三大法人買賣超（外資含外資自營商），以當日收盤價把張數換算成金額排行；法人資料約在收盤後傍晚公布，所以可能比行情晚一天。美股沒有公開的法人買賣資料，改用「上漲股的成交值」與「下跌股的成交值」推估買盤與賣盤，只是參考。`,
     `「加溫／退潮」看占比變化而非金額，避免把全市場量縮誤判成資金撤出。「新進榜」＝今天進前 20，但不在 5 日累計前 20。`,
     `僅供觀察資金動向，不構成投資建議。`
   ].map(t=>`<li>${t}</li>`).join('');
@@ -565,6 +590,103 @@ if(canHover){
   });
   document.addEventListener('mouseleave',()=>tip.hidden=true);
 }
+</script>
+
+
+<style>
+#flow-sec .flow-block{display:flex;flex-direction:column;gap:12px}
+#flow-sec .flow-block+.flow-block{margin-top:12px}
+.flow-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.flow-bar b{font-size:15px}
+.flow-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.up-bg{background:var(--up)} .down-bg{background:var(--down)}
+.fi-wrap{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}
+@media (max-width:700px){.fi-wrap{grid-template-columns:1fr}}
+.fi-col h4{margin:4px 0 6px;font-size:12px;color:var(--muted);font-weight:500}
+.fi-row{display:grid;grid-template-columns:6.5em 1fr 4.2em;align-items:center;gap:8px;font-size:13px;padding:4px 6px;margin-inline:-6px;border-radius:7px;cursor:pointer;border:0;background:transparent;color:inherit;font-family:inherit;text-align:left;width:calc(100% + 12px)}
+.fi-row:hover{background:var(--hover)}
+.fi-row .bname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi-row .btrack{height:12px}
+.flow-lots{display:block;font-size:10px;color:var(--muted)}
+</style>
+<script>
+(function(){
+let who='all', instP=null;
+const WHO={all:'三大法人合計','0':'外資','1':'投信','2':'自營商'};
+const f1=x=>{const a=Math.abs(x);return (x<0?'−':'')+(a>=100?a.toFixed(0):a>=10?a.toFixed(1):a.toFixed(2));};
+const lots=x=>(x>0?'+':x<0?'−':'')+Math.abs(x).toLocaleString('en-US')+' 張';
+
+function loadInst(){
+  if(window.INST) return Promise.resolve();
+  return instP||(instP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-inst.js';s.onload=ok;s.onerror=()=>{instP=null;no()};document.head.appendChild(s);}));
+}
+
+function row(M,s,i,val,max,sub,chg,color){
+  const tag=s.m==='otc'?'<span class="otc">櫃</span>':'';
+  const label=M.key==='tw'?`<span class="sname">${esc(s.name)}</span><span class="scode">${s.code}${tag}</span>`:`<span class="sname">${esc(s.code)}</span><span class="scode" style="font-family:var(--sans)">${esc(s.name)}</span>`;
+  return `<tr data-stk="${esc(s.code)}" data-m="${M.key}" data-name="${esc(s.name)}" tabindex="0"><td class="rk">${i+1}</td><td>${label}<span class="sub-ind">${esc(s.ind)}</span></td>`+
+    `<td class="hide-sm"><button class="ichip" data-ind="${esc(s.ind)}" data-m="${M.key}">${esc(s.ind)}</button></td>`+
+    `<td style="min-width:96px"><div class="shr"><div class="minibar" style="width:${Math.max(2,Math.abs(val)/max*56)}px;background:${color}"></div><span class="num" style="font-size:12px">${f1(val)}</span></div>${sub?`<span class="flow-lots num">${sub}</span>`:''}</td>`+
+    `<td class="r num ${cls(chg)}">${pct(chg)}</td></tr>`;
+}
+function table(el,M,list,getV,getSub,getChg,color,empty){
+  const head=`<thead><tr><th>#</th><th>${M.key==='tw'?'股票':'代號'}</th><th class="hide-sm">產業</th><th>金額</th><th class="r">${mode==='today'?'當日':'5 日'}漲跌</th></tr></thead>`;
+  if(!list.length){$(el).innerHTML=head+`<tbody><tr><td colspan="5" class="hint">${empty}</td></tr></tbody>`;return;}
+  const max=Math.max(...list.map(s=>Math.abs(getV(s))))||1;
+  $(el).innerHTML=head+'<tbody>'+list.map((s,i)=>row(M,s,i,getV(s),max,getSub&&getSub(s),getChg(s),color)).join('')+'</tbody>';
+}
+
+function flowTW(){
+  if(!window.INST){$('#flow-tw-meta').textContent='載入中…';return;}
+  const days=INST.days, n=mode==='today'?1:5, use=days.slice(-n);
+  const by=Object.fromEntries(TW.stocks.map(s=>[s.code,s]));
+  const pick=r=>who==='all'?r[0]+r[1]+r[2]:r[+who];
+  const list=[];
+  for(const [code,rows] of Object.entries(INST.s)){
+    const s=by[code]; if(!s) continue;              // 只看個股（ETF 等不列入）
+    let amt=0, lt=0;
+    rows.slice(-n).forEach((r,j)=>{
+      const d=use[j], k=TW.days.indexOf(d), p=(k>=0&&s.cl[k])||s.last||0, x=pick(r);
+      lt+=x; amt+=x*p/1e5;                           // 張 × 1000 股 × 價 ÷ 1 億
+    });
+    if(lt) list.push({...s,amt,lt});
+  }
+  const chg=s=>mode==='today'?s.d1:s.d5, up=css('--up'), down=css('--down');
+  const period=n===1?fmtD(use[0]):`${fmtD(use[0])}～${fmtD(use[use.length-1])}`;
+  $('#flow-tw-meta').textContent=`${WHO[who]}｜${period}｜單位：億元`;
+  const buy=list.filter(s=>s.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,20);
+  const sell=list.filter(s=>s.amt<0).sort((a,b)=>a.amt-b.amt).slice(0,20);
+  table('#flow-tw-buy',TW,buy,s=>s.amt,s=>lots(s.lt),chg,up,'沒有買超個股');
+  table('#flow-tw-sell',TW,sell,s=>s.amt,s=>lots(s.lt),chg,down,'沒有賣超個股');
+  // 產業加總
+  const ind={}; list.forEach(s=>{ind[s.ind]=(ind[s.ind]||0)+s.amt;});
+  const arr=Object.entries(ind).filter(([k])=>k!=='未分類');
+  const ins=arr.filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,8), outs=arr.filter(x=>x[1]<0).sort((a,b)=>a[1]-b[1]).slice(0,8);
+  const mx=Math.max(1e-9,...[...ins,...outs].map(x=>Math.abs(x[1])));
+  const col=(title,a,color)=>`<div class="fi-col"><h4>${title}</h4>`+(a.length?a.map(([k,v])=>`<button class="fi-row" data-ind="${esc(k)}" data-m="tw"><span class="bname">${esc(k)}</span><span class="btrack"><span class="bfill" style="width:${Math.abs(v)/mx*100}%;background:${color}"></span></span><span class="bval num ${cls(v)}">${f1(v)}</span></button>`).join(''):'<div class="hint">無</div>')+'</div>';
+  $('#flow-tw-ind').innerHTML=col('資金流入（買超）',ins,up)+col('資金流出（賣超）',outs,down);
+  $('#flow-hint').textContent=`台股法人資料到 ${fmtD(days[days.length-1])}`;
+}
+
+function flowUS(){
+  const v=s=>mode==='today'?s.v[4]:s.sum, chg=s=>mode==='today'?s.d1:s.d5;
+  const up=US.stocks.filter(s=>chg(s)>0).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  const dn=US.stocks.filter(s=>chg(s)<0).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  $('#flow-us-meta').textContent=`${mode==='today'?fmtD(US.days[4])+' 單日':'近 5 日累計'}｜單位：億美元`;
+  table('#flow-us-buy',US,up,s=>v(s)/100,null,chg,css('--up'),'沒有上漲個股');
+  table('#flow-us-sell',US,dn,s=>v(s)/100,null,chg,css('--down'),'沒有下跌個股');
+}
+const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+
+function flows(){ if(!TW||!US) return; try{flowTW();}catch(e){} try{flowUS();}catch(e){} }
+document.querySelectorAll('#flow-who button').forEach(b=>b.onclick=()=>{
+  who=b.dataset.k; document.querySelectorAll('#flow-who button').forEach(x=>x.setAttribute('aria-pressed',x===b)); flowTW();
+});
+// 接在原本的 render() 後面（切換最新一日／近 5 日、資料更新時都會重畫）
+const _render=render; render=function(){ _render(); flows(); };
+if(TW&&US) flows();
+loadInst().then(flows).catch(()=>{ const m=$('#flow-tw-meta'); if(m) m.textContent='三大法人資料載入失敗'; });
+})();
 </script>
 
 <!-- 個股面板（網站版專用，由 assemble.py 插在 </body> 前）：分時、日 K、三大法人

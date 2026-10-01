@@ -518,7 +518,7 @@ function openSheet(mk,name,refresh){
   const mx=Math.max(...r.v);
   $('#sh-trend').innerHTML=r.v.map((x,i)=>`<div><i style="height:${Math.max(3,x/mx*28)}px;background:var(--${mk});opacity:${i===4?1:.45}"></i><span>${fmtD(M.days[i])}</span></div>`).join('');
   const key=mode==='today'?(s=>s.v[4]):(s=>s.sum);
-  const all=M.stocks.filter(s=>s.ind===name).sort((a,b)=>key(b)-key(a)); const list=all.slice(0,30);
+  const all=M.stocks.filter(s=>s.ind===name&&(!window.sheetFilter||sheetFilter(s))).sort((a,b)=>key(b)-key(a)); const list=all.slice(0,30);
   const max=list.length?Math.max(key(list[0]),1):1;
   let h=`<thead><tr><th>#</th><th>${mk==='tw'?'股票':'代號'}</th><th>成交值</th><th class="r">${mode==='today'?'當日':'5 日'}漲跌</th><th class="hide-sm">5 日量能</th></tr></thead><tbody>`;
   list.forEach((s,i)=>{h+=stockRow(M,s,i,{v:key(s),max,ch:mode==='today'?s.d1:s.d5,showInd:false,share:key(s)/vNow*100});});
@@ -713,22 +713,102 @@ function augmentSheet(mk,name){
     });
     return;
   }
-  const inInd=list.filter(s=>s.ind===name&&(sheetSort==='buy'?s.amt>0:s.amt<0)).sort((a,b)=>sheetSort==='buy'?b.amt-a.amt:a.amt-b.amt);
+  const inSet=s=>s.ind===name&&(!window.sheetFilter||sheetFilter(s));
+  const inInd=list.filter(s=>inSet(s)&&(sheetSort==='buy'?s.amt>0:s.amt<0)).sort((a,b)=>sheetSort==='buy'?b.amt-a.amt:a.amt-b.amt);
   const top=inInd.slice(0,30), max=Math.max(1e-9,...top.map(s=>Math.abs(s.amt)));
   const color=sheetSort==='buy'?up:down;
   tbl.innerHTML=`<thead><tr><th>#</th><th>股票</th><th>法人買賣超</th><th class="r">${mode==='today'?'當日':'5 日'}漲跌</th></tr></thead><tbody>`+
     (top.length?top.map((s,i)=>`<tr data-stk="${esc(s.code)}" data-m="tw" data-name="${esc(s.name)}" tabindex="0"><td class="rk">${i+1}</td><td><span class="sname">${esc(s.name)}</span><span class="scode">${s.code}${s.m==='otc'?'<span class="otc">櫃</span>':''}</span></td>`+
       `<td style="min-width:96px"><div class="shr"><div class="minibar" style="width:${Math.max(2,Math.abs(s.amt)/max*56)}px;background:${color}"></div><span class="num" style="font-size:12px">${f1(s.amt)}</span></div><span class="flow-lots num">${lots(s.lt)}</span></td>`+
       `<td class="r num ${cls(chg(s))}">${pct(chg(s))}</td></tr>`).join(''):`<tr><td colspan="4" class="hint">這個產業沒有法人${sheetSort==='buy'?'買超':'賣超'}的個股</td></tr>`)+'</tbody>';
-  const tot=list.filter(s=>s.ind===name).reduce((a,s)=>a+s.amt,0);
-  $('#sh-note').textContent=`這個產業「${WHO[who]}」買賣超加總 ${f1(tot)} 億元（${tot>=0?'買超':'賣超'}）。${inInd.length>30?`共 ${inInd.length} 檔，列出前 30 檔。`:''}`;
+  const tot=list.filter(inSet).reduce((a,s)=>a+s.amt,0);
+  $('#sh-note').textContent=`${window.sheetFilterName?`「${sheetFilterName}」`:'這個產業'}「${WHO[who]}」買賣超加總 ${f1(tot)} 億元（${tot>=0?'買超':'賣超'}）。${inInd.length>30?`共 ${inInd.length} 檔，列出前 30 檔。`:''}`;
 }
+window.__instAmts=()=>window.INST?instAmts():null;
 const _open=openSheet; openSheet=function(mk,name,refresh){ _open(mk,name,refresh); try{augmentSheet(mk,name);}catch(e){} };
 
 // 接在原本的 render() 後面（切換最新一日／近 5 日、資料更新時都會重畫）
 const _render=render; render=function(){ _render(); flows(); };
 if(TW&&US) flows();
 loadInst().then(flows).catch(()=>{ const m=$('#flow-tw-meta'); if(m) m.textContent='三大法人資料載入失敗'; });
+})();
+</script>
+
+<!-- 產業細項（網站版專用，由 assemble.py 插在 </body> 前）：在台股產業明細裡列出細項（官方產業價值鏈＋自訂），點細項只看那幾檔。
+     資料：site/data-sub.js（src/build_subind.py 產生） -->
+<style>
+#sh-sub{margin:10px 0 2px}
+#sh-sub .sub-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}
+#sh-sub .sub-head b{color:var(--ink);font-size:14px}
+.sub-row{display:grid;grid-template-columns:1fr 4.6em 4.6em 2.6em;align-items:center;gap:6px;width:100%;padding:6px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.sub-row:hover{background:var(--hover)}
+.sub-row[aria-pressed="true"]{border-color:var(--tw);background:var(--hover)}
+.sub-row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub-row .r{text-align:right;font-family:var(--mono);font-size:12px}
+.sub-cols{display:grid;grid-template-columns:1fr 4.6em 4.6em 2.6em;gap:6px;padding:0 8px;font-size:10px;color:var(--muted)}
+.sub-cols span:not(:first-child){text-align:right}
+.ctag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 3px;margin-left:4px}
+.sub-more{border:0;background:none;color:var(--tw);font:inherit;font-size:12px;cursor:pointer;padding:4px 8px}
+.sub-on{display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0 0;padding:6px 10px;border-radius:8px;background:var(--chip)}
+.sub-on button{margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;font:inherit;font-size:12px;padding:3px 8px;cursor:pointer}
+</style>
+<script>
+(function(){
+let subP=null, byCode=null, showAll=false, curInd=null;
+function loadSub(){
+  if(window.SUB) return Promise.resolve();
+  return subP||(subP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-sub.js';s.onload=ok;s.onerror=()=>{subP=null;no()};document.head.appendChild(s);}));
+}
+const f1=x=>{const a=Math.abs(x);return (x<0?'−':'')+(a>=100?a.toFixed(0):a>=10?a.toFixed(1):a.toFixed(2));};
+function clearFilter(){window.sheetFilter=null;window.sheetFilterName=null;}
+
+function renderSub(mk,name){
+  $('#sh-sub')?.remove();
+  if(mk!=='tw'||!window.SUB) return;
+  const key=mode==='today'?(s=>s.v[4]):(s=>s.sum);
+  const members=new Map(TW.stocks.filter(s=>s.ind===name).map(s=>[s.code,s]));
+  const ia=window.__instAmts&&__instAmts(), amt=ia?new Map(ia.list.map(s=>[s.code,s.amt])):null;
+  let rows=SUB.cats.map(([label,chain,codes])=>{
+    const hit=codes.filter(c=>members.has(c));
+    if(hit.length<(chain==='自訂'?1:2)) return null;
+    return {label,chain,codes:hit,v:hit.reduce((a,c)=>a+key(members.get(c)),0),f:amt?hit.reduce((a,c)=>a+(amt.get(c)||0),0):null};
+  }).filter(Boolean);
+  // 名單完全相同的細項只留一個（自訂優先，其次是產業鏈名稱跟產業相近的）；同名細項加上產業鏈名稱區分
+  const rank=r=>r.chain==='自訂'?0:(r.chain&&(name.includes(r.chain)||r.chain.includes(name)))?1:2;
+  rows.sort((a,b)=>rank(a)-rank(b));
+  const seen=new Set(); rows=rows.filter(r=>{const k=r.codes.slice().sort().join();if(seen.has(k))return false;seen.add(k);return true;});
+  const cnt={}; rows.forEach(r=>cnt[r.label]=(cnt[r.label]||0)+1);
+  rows.forEach(r=>r.show=cnt[r.label]>1&&r.chain!=='自訂'?`${r.label}（${r.chain}）`:r.label);
+  rows.sort((a,b)=>b.v-a.v);
+  if(!rows.length) return;
+  const box=document.createElement('div'); box.id='sh-sub';
+  const N=showAll?rows.length:Math.min(rows.length,8);
+  const sel=window.sheetFilterName;
+  box.innerHTML=`<div class="sub-head"><b>細項</b><span>點細項只看那幾檔｜${mode==='today'?'最新一日':'近 5 日'}｜億元</span></div>`+
+    `<div class="sub-cols"><span>細項</span><span>成交值</span><span>法人</span><span>檔數</span></div>`+
+    rows.slice(0,N).map((r,i)=>`<button class="sub-row" data-i="${i}" aria-pressed="${sel===r.show}"><span class="nm">${esc(r.show)}${r.chain==='自訂'?'<span class="ctag">自訂</span>':''}</span><span class="r">${yi(r.v)}</span><span class="r ${r.f==null?'zero':cls(r.f)}">${r.f==null?'—':f1(r.f)}</span><span class="r" style="color:var(--muted)">${r.codes.length}</span></button>`).join('')+
+    (rows.length>8?`<button class="sub-more">${showAll?'收起':`顯示全部 ${rows.length} 個細項`}</button>`:'')+
+    (sel?`<div class="sub-on">目前只看「${esc(sel)}」<button>看整個產業</button></div>`:'');
+  box.querySelectorAll('.sub-row').forEach(b=>b.onclick=()=>{
+    const r=rows[+b.dataset.i];
+    if(sel===r.show) clearFilter(); else { const set=new Set(r.codes); window.sheetFilter=s=>set.has(s.code); window.sheetFilterName=r.show; }
+    openSheet(mk,name,true);
+  });
+  box.querySelector('.sub-more')?.addEventListener('click',()=>{showAll=!showAll;openSheet(mk,name,true);});
+  box.querySelector('.sub-on button')?.addEventListener('click',()=>{clearFilter();openSheet(mk,name,true);});
+  const anchor=$('#sh-sort')||$('#sh-table'); anchor.before(box);
+}
+
+const _open=openSheet;
+openSheet=function(mk,name,refresh){
+  if(!refresh||curInd!==mk+name){clearFilter();showAll=false;}   // 換產業就清掉細項篩選
+  curInd=mk+name;
+  _open(mk,name,refresh);
+  try{renderSub(mk,name);}catch(e){}
+  if(mk==='tw'&&!window.SUB) loadSub().then(()=>{ if(openInd&&openInd.n===name) openSheet(mk,name,true); }).catch(()=>{});
+};
+const _close=closeSheet; closeSheet=function(){ clearFilter(); curInd=null; _close(); };
+loadSub().catch(()=>{});
 })();
 </script>
 

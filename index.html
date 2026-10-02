@@ -471,6 +471,7 @@ function etf(){
 
 function notes(){
   $('#notes').innerHTML=[
+    ...(TW.live?[`盤中即時：台股開盤時間（平日 09:00～13:30）每 60 秒向鉅亨網抓全部上市櫃股票與 ETF 的累計成交金額與股價，「今天」是盤中累計值（${TW.live.at} 為止），產業占比、熱度、排行都會跟著更新；收盤後官方資料（約 15:52）到了就改用官方資料。三大法人只在收盤後公布，盤中不會變動。網頁切到背景時會暫停更新以節省流量。`]:[]),
     TW.hasOTC
       ? `台股：含上市＋上櫃（標「櫃」的是上櫃股票）。上市來自臺灣證券交易所「各類指數日成交量值」與個股收盤行情，上櫃來自櫃買中心每日收盤行情（產業成交值由個股加總），最近 5 個交易日，週一到週五 15:52 自動更新。產業依證交所／櫃買中心分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`
       : `台股：每日資料載入失敗，目前直接向臺灣證券交易所抓最新 5 個交易日，<b>只有上市、未含上櫃</b>。產業依 TWSE 分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`,
@@ -731,6 +732,101 @@ const _open=openSheet; openSheet=function(mk,name,refresh){ _open(mk,name,refres
 const _render=render; render=function(){ _render(); flows(); };
 if(TW&&US) flows();
 loadInst().then(flows).catch(()=>{ const m=$('#flow-tw-meta'); if(m) m.textContent='三大法人資料載入失敗'; });
+})();
+</script>
+
+<!-- 台股盤中即時（網站版專用，由 assemble.py 插在 </body> 前）
+     盤中（平日 09:00～13:35，台北時間）每 60 秒向鉅亨網批次報價 API 抓全部上市櫃股票＋ETF 的「當日累計成交金額、現價、昨收」，
+     把「今天」當成第 5 天接在每日快照的前 4 天後面，重算產業占比、熱度輪動、Top 20、ETF。
+     收盤後、15:52 排程更新前也會抓一次，讓今天的收盤資料先出現。三大法人只有收盤後才有，不受影響。
+     抓不到時保留原本的每日快照，網站不會壞。 -->
+<script>
+(function(){
+const API='https://ws.api.cnyes.com/ws/api/v2/quote/quotes/';
+const CHUNK=250, PAR=3, EVERY=60000;
+let timer=null, busy=false, liveAt=null, failAt=null;
+
+function tpe(t){const d=new Date((t??Date.now())+8*3600e3);return {ymd:d.toISOString().slice(0,10).replace(/-/g,''),hm:d.getUTCHours()*100+d.getUTCMinutes(),dow:d.getUTCDay(),hhmm:d.toISOString().slice(11,16)};}
+const TEST=/[?&]livetest\b/.test(location.search);           // 測試用：網址加 ?livetest 視為盤中
+function inSession(){if(TEST)return true;const t=tpe();return t.dow>=1&&t.dow<=5&&t.hm>=900&&t.hm<=1335;}
+
+// 要抓的代號：每日快照 5 天內出現過的上市（個股＋ETF）與上櫃
+function universe(){
+  const base=window.TW_SNAPSHOT, U=new Map();
+  base.days.forEach(d=>{
+    base.data[d].rows.forEach(r=>{ if(/^([1-9]\d{3}|00\w+)$/.test(r[0])) U.set(r[0],{m:'tse'}); });
+    (base.data[d].otc||[]).forEach(r=>U.set(r[0],{m:'otc',ind:r[5]}));
+  });
+  return U;
+}
+
+async function fetchAll(codes){
+  const chunks=[]; for(let i=0;i<codes.length;i+=CHUNK) chunks.push(codes.slice(i,i+CHUNK));
+  const out=[]; let k=0;
+  async function worker(){ while(k<chunks.length){ const c=chunks[k++];
+    // 不要加 ?column=：實測指定欄位時鉅亨網伺服器反而慢 10 倍以上
+    const r=await fetch(API+c.map(x=>`TWS:${x}:STOCK`).join(',')); if(!r.ok) throw new Error('HTTP '+r.status);
+    out.push(...((await r.json()).data||[])); } }
+  await Promise.all(Array.from({length:PAR},worker));
+  return out;
+}
+
+async function refresh(){
+  if(busy||!window.TW_SNAPSHOT||!TW||!US) return; busy=true;
+  try{
+    const base=window.TW_SNAPSHOT, today=tpe().ymd, U=universe();
+    if(base.days[base.days.length-1]===today&&!inSession()) return;   // 盤後官方資料已到，不用即時
+    const q=await fetchAll([...U.keys()]);
+    const rows=[], otc=[], bf={}; let n=0, lastT=0;
+    for(const x of q){
+      const code=String(x['200010']||String(x['0']).split(':')[1]); const u=U.get(code); if(!u) continue;
+      const t=+x['200007']||0; if(tpe(t*1000).ymd!==today) continue;  // 今天沒成交的會回傳舊資料 → 略過
+      const v=Math.round((+x['200067']||0)/1e6); if(v<=0) continue;
+      const cl=+x['6']||null, prev=+x['21']||null, ch=cl&&prev?+(cl-prev).toFixed(4):0, name=x['200009']||code;
+      n++; if(t>lastT) lastT=t;
+      if(u.m==='otc') otc.push([code,name,v,cl,ch,/^00/.test(code)?'':u.ind]);
+      else{ rows.push([code,name,v,cl,ch]); if(/^[1-9]\d{3}$/.test(code)&&TW_MAP[code]) bf[TW_MAP[code]]=(bf[TW_MAP[code]]||0)+v; }
+    }
+    if(n<200) return;                                                   // 今天不是交易日或還沒開盤
+    const days=base.days.filter(d=>d!==today).slice(-4).concat(today);
+    const data={}; days.forEach(d=>data[d]=d===today?{bf:Object.entries(bf),rows,otc}:base.data[d]);
+    TW=buildTW({days,data});
+    TW.live={at:tpe(lastT*1000).hhmm,intraday:inSession()};
+    liveAt=TW.live.at; failAt=null;
+    twState=TW.live.intraday?'intra':'close';
+    fullRender();
+  }catch(e){ failAt=tpe().hhmm; if(TW&&TW.live){ twState='livefail'; stamp(); } }
+  finally{ busy=false; }
+}
+
+// 狀態標籤：接在原本的 stamp() 後面補上盤中狀態
+const _stamp=stamp;
+stamp=function(){
+  _stamp();
+  const pill=$('#stamp .pill'); if(!pill||!TW||!TW.live) return;
+  const lab={intra:`盤中即時｜${TW.live.at} 更新`,close:`今日收盤（即時報價）`,livefail:`即時暫停｜顯示 ${liveAt}`}[twState];
+  if(lab) pill.lastElementChild.textContent='｜'+lab;
+};
+// 盤中「最新一日總成交值」只是累計值，不跟 5 日均量比
+const _render=render;
+render=function(){
+  _render();
+  if(TW&&TW.live&&TW.live.intraday&&mode==='today'){
+    const d=$('#sum .kpi[data-mk="tw"] .d'); if(d) d.textContent=`盤中累計至 ${TW.live.at}（全日未結束，不跟 5 日均量比）`;
+  }
+};
+
+function schedule(){
+  clearInterval(timer); timer=null;
+  if(document.hidden) return;
+  refresh();
+  if(inSession()) timer=setInterval(()=>{ if(!inSession()){ clearInterval(timer); timer=null; refresh(); return; } refresh(); },EVERY);
+}
+window.__liveRefresh=refresh;                              // 除錯用
+document.addEventListener('visibilitychange',schedule);   // 切到背景就停，回來立刻更新（省流量）
+// 開盤前打開網頁：到 09:00 自動開始
+setInterval(()=>{ if(!timer&&!document.hidden&&inSession()) schedule(); },60000);
+schedule();
 })();
 </script>
 

@@ -197,7 +197,7 @@ td.r,th.r{text-align:right}
     <div class="h2row">
       <h2>哪個產業交易最熱（成交值占比）</h2>
       <div class="legend">
-        <span class="lg"><span style="width:2px;height:14px;background:var(--ink);display:inline-block"></span>5 日平均占比</span>
+        <span class="lg"><span style="width:2px;height:14px;background:var(--ink);display:inline-block"></span>前 4 日平均占比</span>
         <span class="lg"><span class="delta hot">+1.2</span>比平常熱</span>
         <span class="lg"><span class="delta cold">−0.8</span>比平常冷（百分點）</span>
       </div>
@@ -214,7 +214,7 @@ td.r,th.r{text-align:right}
       <h2>五日交易熱度輪動</h2>
       <div class="legend"><span>數字＝當日占比 %</span>
         <span class="scale"><span style="background:var(--cold3)"></span><span style="background:var(--cold2)"></span><span style="background:var(--cold1)"></span><span style="background:var(--mid)"></span><span style="background:var(--hot1)"></span><span style="background:var(--hot2)"></span><span style="background:var(--hot3)"></span></span>
-        <span>退潮 → 湧入（相對該產業 5 日平均）</span></div>
+        <span>降溫 → 升溫（相對該產業其他 4 天平均）</span></div>
     </div>
     <div class="duo">
       <div class="card" data-mk="tw"><h3><span class="flag tw">TW</span>台股</h3><div class="meta">依 5 日總成交值排序，前 16 大產業</div><div class="hscroll"><div class="heat" id="tw-heat"></div></div></div>
@@ -248,8 +248,8 @@ td.r,th.r{text-align:right}
   <div data-mk="us" class="flow-block">
     <div class="flow-bar"><span class="flag us">US</span><b>帶量上漲／帶量下跌</b><span class="hint">美股沒有公開的法人買賣資料，這裡是推估</span></div>
     <div class="duo">
-      <div class="card"><h3><span class="flow-dot up-bg"></span>搶買：上漲股成交值前 20</h3><div class="meta" id="flow-us-meta"></div><div class="tscroll"><table id="flow-us-buy"></table></div></div>
-      <div class="card"><h3><span class="flow-dot down-bg"></span>拋售：下跌股成交值前 20</h3><div class="meta">單位：億美元｜上漲時成交越大，通常代表買方越積極，反之亦然</div><div class="tscroll"><table id="flow-us-sell"></table></div></div>
+      <div class="card"><h3><span class="flow-dot up-bg"></span>量大上漲：漲 ≥ 1% 的成交值前 20</h3><div class="meta" id="flow-us-meta"></div><div class="tscroll"><table id="flow-us-buy"></table></div></div>
+      <div class="card"><h3><span class="flow-dot down-bg"></span>量大下跌：跌 ≥ 1% 的成交值前 20</h3><div class="meta">單位：億美元｜上漲時成交越大，通常代表買方越積極，反之亦然</div><div class="tscroll"><table id="flow-us-sell"></table></div></div>
     </div>
   </div>
 </section>
@@ -278,7 +278,7 @@ td.r,th.r{text-align:right}
 <div id="tip" hidden></div>
 
 <script>
-const TW_MAP_C = {"鋼鐵":"2002 2002A 2006 2007 2008 2009 2010 2012 2013 2014 2015 2017 2020 2022 2023 2024 2025 2027 2028 2029 2030 2031 2032 2033 2034 2038 2069 2211 3004 5007 5538 9958","橡膠":"2101 2102 2103 2104 2105 2106 2107 2108 2109 2114 6582","汽車":"1319 1338 1339 1512 1521 1522 1522A 1524 1525 1533 1536 1563 1568 1587 2115 2201 2204 2206 2207 2227 2228 2231 2233 2236 2237 2239 2241 2243 2247 2248 2250 2254 2258 2497 3346 3717 4551 4557 4569 4581 6605 6988 7732 7736 7821","建材營造":"1316 1436 1438 1439 1442 1453 1456 1472 1805 1808 2442 2501 2504 2505 2506 2509 2511 2515 2516 2520 2524 2527 2528 2530 2534 2535 2536 2537 2538 2539 2540 2542 2543 2545 2546 2547 2548 2597 2923 3052 3056 3266 3703 5515 5519 5521 5522 5525 5531 5533 5534 5546 6177 9906 9946","航運業":"2208 2603 2605 2606 2607 2608 2609 2610 2611 2612 2613 2615 2617 2618 2630 2633 2634 2636 2637 2642 2645 2646 5607 5608 6753 6757 8367","觀光餐旅":"2701 2702 2704 2705 2706 2707 2712 2722 2723 2727 2731 2739 2748 2753 5706 7705 7760 8940 9943","金融保險":"2801 2812 2816 2820 2832 2834 2836 2836A 2838 2838A 2845 2849 2850 2851 2852 2855 2880 2881 2881A 2881B 2881C 2882 2882A 2882B 2883 2883B 2884 2885 2886 2887 2887E 2887F 2887G 2887H 2887I 2887Z1 2889 2890 2891 2891B 2891C 2892 2897 2897B 5876 5880 6005 6024","貿易百貨":"2901 2903 2905 2906 2908 2910 2911 2912 2913 2915 2929 2939 2945 4807 5906 5907 8429 8443","其他":"1342 1416 1435 1437 1443 1516 2348 2348A 2496 2514 2614 2904 3040 5284 5871 5871A 6184 6464 6504 6585 6592 6592A 6592B 6625 6655 6901 6914 6952 6957 6958 6958A 7855 8033 8404 8411 8442 8463 8466 8481 8488 9902 9905 9907 9917 9919 9925 9927 9928 9929 9933 9938 9939 9940 9941 9941A 9942 9944 9945","化學":"1708 1709 1710 1711 1712 1713 1714 1717 1718 1721 1722 1723 1725 1726 1727 1730 1732 1735 1773 1776 4720 4722 4739 4755 4763 4764 4766 4770","生技醫療":"1707 1720 1731 1733 1734 1752 1760 1762 1783 1786 1789 1795 3164 3705 3716 4104 4106 4108 4119 4133 4137 4142 4148 4155 4164 4169 4178 4190 4195 4736 4737 4746 4771 6431 6446 6472 6491 6534 6541 6589 6598 6645 6657 6666 6782 6794 6796 6838 6861 6885 6918 6919 6931 6934 6936 6949 6955 7799 7803 7827","油電燃氣":"2616 6505 8926 9908 9918 9926 9931 9937","半導體":"2302 2303 2329 2330 2337 2338 2340 2342 2344 2351 2363 2369 2379 2388 2401 2408 2434 2436 2441 2449 2451 2454 2458 2481 3006 3014 3016 3034 3035 3041 3094 3135 3150 3189 3257 3413 3443 3450 3530 3532 3545 3583 3588 3592 3661 3686 3711 4919 4952 4961 4967 4968 5222 5236 5269 5285 5471 6202 6239 6243 6257 6271 6415 6451 6515 6525 6526 6531 6533 6552 6573 6695 6719 6756 6770 6789 6799 6854 6909 6921 6937 6962 7730 7749 7768 7769 7822 8016 8028 8081 8110 8131 8150 8162 8261 8271","電腦及週邊設備":"2301 2305 2324 2331 2352 2353 2356 2357 2362 2364 2365 2376 2377 2380 2382 2387 2395 2397 2399 2405 2417 2425 2432 2465 2495 3002 3005 3013 3017 3022 3046 3057 3060 3231 3416 3494 3515 3652 3701 3706 3712 4916 4938 5215 5258 6117 6128 6166 6206 6230 6235 6277 6414 6579 6591 6669 6831 6928 6933 7711 8114 8163 8210 9912","光電":"2323 2349 2374 2393 2406 2409 2426 2429 2438 2466 2486 2489 2491 3008 3019 3024 3031 3038 3049 3050 3051 3059 3149 3168 3356 3406 3437 3481 3504 3535 3543 3563 3576 3591 3622 3673 3714 4934 4935 4942 4949 4956 4960 4976 5234 5243 5244 5484 6116 6120 6164 6168 6176 6209 6225 6226 6278 6405 6443 6456 6477 6668 6706 6742 6916 8104 8105 8215","通信網路":"2314 2321 2332 2345 2412 2419 2424 2439 2444 2450 2455 2485 2498 3025 3027 3045 3047 3062 3138 3311 3380 3419 3447 3596 3669 3694 3704 4904 4906 4977 5388 6136 6142 6152 6216 6285 6416 6426 6442 6674 6792 6863 7689 7812 8011 8045 8101","電子零組件":"1471 1582 2059 2308 2313 2316 2327 2328 2355 2367 2368 2375 2383 2385 2392 2402 2413 2415 2420 2421 2428 2431 2440 2457 2460 2462 2467 2472 2476 2478 2483 2484 2492 2493 3003 3011 3015 3021 3023 3026 3032 3037 3042 3044 3058 3090 3092 3229 3296 3308 3321 3338 3376 3432 3501 3533 3550 3593 3605 3607 3645 3653 3679 3715 4545 4912 4915 4927 4943 4958 4989 4999 5469 6108 6115 6133 6141 6153 6155 6191 6197 6205 6213 6224 6269 6272 6282 6412 6449 6672 6715 6781 6805 6834 6835 6862 6924 7788 7795 8039 8046 8103 8213 8249","電子通路":"2347 2414 2430 3010 3028 3033 3036 3048 3054 3055 3209 3312 3528 3702 5434 6189 6281 6776 6908 8070 8072 8112 8112A","資訊服務":"2427 2453 2468 2471 2480 3029 4994 5203 6112 6183 6214","其他電子":"2312 2317 2354 2359 2360 2373 2390 2404 2423 2433 2459 2461 2464 2474 2477 2482 2488 3018 3030 3043 3305 3518 3617 3665 4585 4588 5225 6139 6192 6196 6201 6215 6283 6409 6438 6558 6658 6691 6698 6722 6743 6830 7631 8021 8201 8499","綠能環保":"2072 3708 4582 5292 6581 6641 6771 6869 6873 6887 6923 6944 6947 6951 6969 6994 7610 7740 7786 7818 8341 8422 8438 8473 8476 9930 9955","數位雲端":"3130 6165 6614 6689 6902 6906 7721 7722 7765 7823 7835 8454 8487","運動休閒":"1432 1598 1736 2762 4536 5306 6670 6768 6890 6965 8462 8467 8478 9802 9904 9910 9914 9921","居家生活":"2062 3557 6671 6754 6807 8464 8482 9911 9924 9934 9935","水泥":"1101 1101B 1102 1103 1104 1108 1109 1110","食品":"1201 1203 1210 1213 1215 1216 1217 1218 1219 1220 1225 1227 1229 1231 1232 1233 1234 1235 1236 1256 1702 1737 7780 7791","塑膠":"1301 1303 1304 1305 1307 1308 1309 1310 1312 1312A 1313 1314 1315 1321 1323 1324 1325 1326 1337 1340 1341 4306","紡織纖維":"1402 1409 1410 1413 1414 1417 1418 1419 1423 1434 1440 1444 1445 1446 1447 1449 1451 1452 1454 1455 1457 1459 1460 1463 1464 1465 1466 1467 1468 1470 1473 1474 1475 1476 1477 4414 4426 4438 4439 4440 4441","電機機械":"1503 1504 1506 1513 1514 1515 1517 1519 1526 1527 1528 1529 1530 1531 1532 1535 1537 1538 1539 1540 1541 1558 1560 1583 1590 1597 2049 2371 3167 4526 4532 4540 4552 4555 4560 4562 4564 4566 4571 4572 4576 4583 4590 5288 6606 7750 8222 8374 8996","電器電纜":"1603 1604 1605 1608 1609 1611 1612 1614 1615 1616 1617 1618 1623 1626 4930 5283","玻璃陶瓷":"1802 1806 1809 1810 1817","造紙":"1903 1904 1905 1906 1907 1909 6790"};
+const TW_MAP_C = {"水泥":"1101 1101B 1102 1103 1104 1108 1109 1110","食品":"1201 1203 1210 1213 1215 1216 1217 1218 1219 1220 1225 1227 1229 1231 1232 1233 1234 1235 1236 1256 1702 1737 7780 7791","塑膠":"1301 1303 1304 1305 1307 1308 1309 1310 1312 1312A 1313 1314 1315 1321 1323 1324 1325 1326 1337 1340 1341 4306","建材營造":"1316 1436 1438 1439 1442 1453 1456 1472 1805 1808 2442 2501 2504 2505 2506 2509 2511 2515 2516 2520 2524 2527 2528 2530 2534 2535 2536 2537 2538 2539 2540 2542 2543 2545 2546 2547 2548 2597 2923 3052 3056 3266 3703 5515 5519 5521 5522 5525 5531 5533 5534 5546 6177 9906 9946","汽車":"1319 1338 1339 1512 1521 1522 1522A 1524 1525 1533 1536 1563 1568 1587 2115 2201 2204 2206 2207 2227 2228 2231 2233 2236 2237 2239 2241 2243 2247 2248 2250 2254 2258 2497 3346 3717 4551 4557 4569 4581 6605 6988 7732 7736 7821","其他":"1342 1416 1435 1437 1443 1516 2348 2348A 2496 2514 2614 2904 3040 5284 5871 5871A 6184 6464 6504 6585 6592 6592A 6592B 6625 6655 6901 6914 6952 6957 6958 6958A 7855 8033 8404 8411 8442 8463 8466 8481 8488 9902 9905 9907 9917 9919 9925 9927 9928 9929 9933 9938 9939 9940 9941 9941A 9942 9944 9945","紡織纖維":"1402 1409 1410 1413 1414 1417 1418 1419 1423 1434 1440 1441 1444 1445 1446 1447 1449 1451 1452 1454 1455 1457 1459 1460 1463 1464 1465 1466 1467 1468 1470 1473 1474 1475 1476 1477 4414 4426 4438 4439 4440 4441","運動休閒":"1432 1598 1736 2762 4536 5306 6670 6768 6890 6965 8462 8467 8478 9802 9904 9910 9914 9921","電子零組件":"1471 1582 2059 2308 2313 2316 2327 2328 2355 2367 2368 2375 2383 2385 2392 2402 2413 2415 2420 2421 2428 2431 2440 2457 2460 2462 2467 2472 2476 2478 2483 2484 2492 2493 3003 3011 3015 3021 3023 3026 3032 3037 3042 3044 3058 3090 3092 3229 3296 3308 3321 3338 3376 3432 3501 3533 3550 3593 3605 3607 3645 3653 3679 3715 4545 4912 4915 4927 4943 4958 4989 4999 5469 6108 6115 6133 6141 6153 6155 6191 6197 6205 6213 6224 6269 6272 6282 6412 6449 6672 6715 6781 6805 6834 6835 6862 6924 7788 7795 8039 8046 8103 8213 8249","電機機械":"1503 1504 1506 1513 1514 1515 1517 1519 1526 1527 1528 1529 1530 1531 1532 1535 1537 1538 1539 1540 1541 1558 1560 1583 1589 1590 1597 2049 2371 3167 4526 4532 4540 4552 4555 4560 4562 4564 4566 4571 4572 4576 4583 4590 5288 6606 7750 8222 8374 8996","電器電纜":"1603 1604 1605 1608 1609 1611 1612 1614 1615 1616 1617 1618 1623 1626 4930 5283","生技醫療":"1707 1720 1731 1733 1734 1752 1760 1762 1783 1786 1789 1795 3164 3705 3716 4104 4106 4108 4119 4133 4137 4142 4148 4155 4164 4169 4178 4190 4195 4736 4737 4746 4771 6431 6446 6472 6491 6534 6541 6550 6589 6598 6645 6657 6666 6782 6794 6796 6838 6861 6885 6918 6919 6931 6934 6936 6949 6955 7799 7803 7827","化學":"1708 1709 1710 1711 1712 1713 1714 1717 1718 1721 1722 1723 1725 1726 1727 1730 1732 1735 1773 1776 4720 4722 4739 4755 4763 4764 4766 4770","玻璃陶瓷":"1802 1806 1809 1810 1817","造紙":"1903 1904 1905 1906 1907 1909 6790","鋼鐵":"2002 2002A 2006 2007 2008 2009 2010 2012 2013 2014 2015 2017 2020 2022 2023 2024 2025 2027 2028 2029 2030 2031 2032 2033 2034 2038 2069 2211 3004 5007 5538 9958","居家生活":"2062 3557 6671 6754 6807 8464 8482 9911 9924 9934 9935","綠能環保":"2072 3708 4582 5292 6581 6641 6771 6869 6873 6887 6923 6944 6947 6951 6969 6994 7610 7740 7786 7818 8341 8422 8438 8473 8476 9930 9955","橡膠":"2101 2102 2103 2104 2105 2106 2107 2108 2109 2114 6582","航運業":"2208 2601 2603 2605 2606 2607 2608 2609 2610 2611 2612 2613 2615 2617 2618 2630 2633 2634 2636 2637 2642 2645 2646 5607 5608 6753 6757 8367","電腦及週邊設備":"2301 2305 2324 2331 2352 2353 2356 2357 2362 2364 2365 2376 2377 2380 2382 2387 2395 2397 2399 2405 2417 2425 2432 2465 2495 3002 3005 3013 3017 3022 3046 3057 3060 3231 3416 3494 3515 3652 3701 3706 3712 4916 4938 5215 5258 6117 6128 6166 6206 6230 6235 6277 6414 6579 6591 6669 6831 6928 6933 7711 8114 8163 8210 9912","半導體":"2302 2303 2329 2330 2337 2338 2340 2342 2344 2351 2363 2369 2379 2388 2401 2408 2434 2436 2441 2449 2451 2454 2458 2481 3006 3014 3016 3034 3035 3041 3094 3135 3150 3189 3257 3413 3443 3450 3530 3532 3545 3583 3588 3592 3661 3686 3711 4919 4952 4961 4967 4968 5222 5236 5269 5285 5471 6202 6239 6243 6257 6271 6415 6451 6515 6525 6526 6531 6533 6552 6573 6695 6719 6756 6770 6789 6799 6854 6909 6921 6937 6962 7730 7749 7768 7769 7822 8016 8028 8081 8110 8131 8150 8162 8261 8271","其他電子":"2312 2317 2354 2359 2360 2373 2390 2404 2423 2433 2459 2461 2464 2474 2477 2482 2488 3018 3030 3043 3305 3518 3617 3665 4585 4588 5225 6139 6192 6196 6201 6215 6283 6409 6438 6558 6658 6691 6698 6722 6743 6830 7631 8021 8201 8499","通信網路":"2314 2321 2332 2345 2412 2419 2424 2439 2444 2450 2455 2485 2498 3025 3027 3045 3047 3062 3138 3311 3380 3419 3447 3596 3669 3694 3704 4904 4906 4977 5388 6136 6142 6152 6216 6285 6416 6426 6442 6674 6792 6863 7689 7812 8011 8045 8101","光電":"2323 2349 2374 2393 2406 2409 2426 2429 2438 2466 2486 2489 2491 3008 3019 3024 3031 3038 3049 3050 3051 3059 3149 3168 3356 3406 3437 3481 3504 3535 3543 3563 3576 3591 3622 3673 3714 4934 4935 4942 4949 4956 4960 4976 5234 5243 5244 5484 6116 6120 6164 6168 6176 6209 6225 6226 6278 6405 6443 6456 6477 6668 6706 6742 6916 8104 8105 8215","電子通路":"2347 2414 2430 3010 3028 3033 3036 3048 3054 3055 3209 3312 3528 3702 5434 6189 6281 6776 6908 8070 8072 8112 8112A","資訊服務":"2427 2453 2468 2471 2480 3029 4994 5203 6112 6183 6214","油電燃氣":"2616 6505 8926 9908 9918 9926 9931 9937","觀光餐旅":"2701 2702 2704 2705 2706 2707 2712 2722 2723 2727 2731 2739 2748 2753 5706 7705 7760 8940 9943","金融保險":"2801 2812 2816 2820 2832 2834 2836 2836A 2838 2838A 2845 2849 2850 2851 2852 2855 2880 2881 2881A 2881B 2881C 2882 2882A 2882B 2883 2883B 2884 2885 2886 2887 2887E 2887F 2887G 2887H 2887I 2887Z1 2889 2890 2891 2891B 2891C 2892 2897 2897B 5876 5880 6005 6024","貿易百貨":"2901 2903 2905 2906 2908 2910 2911 2912 2913 2915 2929 2939 2945 4807 5906 5907 8429 8443","數位雲端":"3130 6165 6614 6689 6902 6906 7721 7722 7765 7823 7835 8454 8487"};
 const TW_MAP = {}; for (const [k,v] of Object.entries(TW_MAP_C)) v.split(' ').forEach(c=>TW_MAP[c]=k);
 const TW_EXCL = ['電子','化學生技醫療'];
 async function twFetchDay(d){
@@ -378,7 +378,8 @@ function indStats(M){
   const tot5=sum(dayTot);
   M.dayTot=dayTot;
   return names.map(n=>{
-    const v=M.ind[n].v, shares=v.map((x,i)=>x/dayTot[i]*100), avg=sum(shares)/5;
+    // 「平常」＝前 4 天平均（不含今天，否則差距會被稀釋 20%）
+    const v=M.ind[n].v, shares=v.map((x,i)=>x/dayTot[i]*100), avg=sum(shares.slice(0,4))/4;
     return {n,v,shares,avg,today:shares[4],sum5:sum(v),share5:sum(v)/tot5*100,delta:shares[4]-avg};
   });
 }
@@ -395,14 +396,14 @@ function summary(){
   const card=(M,k,v,d,ind)=>`<div class="kpi${ind?' click':''}" data-mk="${M.key}" ${ind?`role="button" tabindex="0" data-ind="${esc(ind)}"`:''}><div class="k"><span class="flag ${M.key}">${M.key.toUpperCase()}</span>${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
   const out={tw:[],us:[]};
   for(const M of [TW,US]){
-    const I=M.I, totals=M.dayTot, last=totals[4], avg=sum(totals)/5, chg=(last/avg-1)*100;
+    const I=M.I, totals=M.dayTot, last=totals[4], avg=sum(totals.slice(0,4))/4, chg=(last/avg-1)*100;
     if(mode==='today'){
-      out[M.key].push(card(M,'最新一日總成交值',`<span class="num">${yi(last)}</span> <small style="font-size:12px;font-weight:500">${M.unit}</small>`,`比 5 日均量 <b class="${cls(chg)}">${pct(chg)}</b>`));
+      out[M.key].push(card(M,'最新一日股票成交值',`<span class="num">${yi(last)}</span> <small style="font-size:12px;font-weight:500">${M.unit}</small>`,`比前 4 日均量 <b class="${cls(chg)}">${pct(chg)}</b>${M.key==='tw'?'｜不含 ETF':''}`));
       const hot=[...I].filter(x=>x.today>0.5).sort((a,b)=>b.delta-a.delta)[0];
       out[M.key].push(card(M,'今天最加溫的產業',esc(hot.n)+' <span class="chev">›</span>',`占比 ${hot.today.toFixed(1)}%，比平常多 <b class="up">${hot.delta.toFixed(1)}</b> 點`,hot.n));
     }else{
       const tot5=sum(totals);
-      out[M.key].push(card(M,'近 5 日總成交值',`<span class="num">${yi(tot5)}</span> <small style="font-size:12px;font-weight:500">${M.unit}</small>`,`日均 ${yi(tot5/5)} ${M.unit}`));
+      out[M.key].push(card(M,'近 5 日股票成交值',`<span class="num">${yi(tot5)}</span> <small style="font-size:12px;font-weight:500">${M.unit}</small>`,`日均 ${yi(tot5/5)} ${M.unit}${M.key==='tw'?'｜不含 ETF':''}`));
       const trend=[...I].filter(x=>x.share5>0.5).map(x=>({...x,tr:x.shares[4]-x.shares[0]})).sort((a,b)=>b.tr-a.tr)[0];
       out[M.key].push(card(M,'5 日占比爬升最多',esc(trend.n)+' <span class="chev">›</span>',`從 ${trend.shares[0].toFixed(1)}% 升到 ${trend.shares[4].toFixed(1)}%（<span class="up">+${trend.tr.toFixed(1)}</span> 點）`,trend.n));
     }
@@ -415,11 +416,11 @@ function bars(M,limit){
   const rows=[...M.I].sort((a,b)=>b[key]-a[key]).slice(0,limit);
   const max=Math.max(...rows.map(r=>Math.max(r[key],r.avg)));
   const color=`var(--${M.key})`;
-  $(`#${M.key}-ind-meta`).textContent=mode==='today'?'長條＝最新一日占比，黑線＝5 日平均，右側＝差距（百分點）':'長條＝近 5 日合計占比，右側＝第 5 日比第 1 日的占比變化';
+  $(`#${M.key}-ind-meta`).textContent=mode==='today'?'長條＝最新一日占比，黑線＝前 4 日平均，右側＝差距（百分點）':'長條＝近 5 日合計占比，右側＝第 5 日比第 1 日的占比變化';
   $(`#${M.key}-ind`).innerHTML=rows.map(r=>{
     const val=r[key], d=mode==='today'?r.delta:r.shares[4]-r.shares[0];
     const dc=Math.abs(d)<0.3?'flat':d>0?'hot':'cold';
-    const tip=`<b>${esc(r.n)}</b><br>最新一日占比 ${r.today.toFixed(2)}%<br>5 日平均占比 ${r.avg.toFixed(2)}%<br>最新一日 ${yi(r.v[4])} 億｜5 日 ${yi(r.sum5)} 億<br>點擊看相關個股`;
+    const tip=`<b>${esc(r.n)}</b><br>最新一日占比 ${r.today.toFixed(2)}%<br>前 4 日平均占比 ${r.avg.toFixed(2)}%<br>最新一日 ${yi(r.v[4])} 億｜5 日 ${yi(r.sum5)} 億<br>點擊看相關個股`;
     return `<button class="brow" data-ind="${esc(r.n)}" data-m="${M.key}" data-tip="${esc(tip)}" aria-label="${esc(r.n)}，占比 ${val.toFixed(1)}%，看相關個股"><span class="bname">${esc(r.n)}</span>
       <span class="btrack"><span class="bfill" style="width:${val/max*100}%;background:${color}"></span>${mode==='today'?`<span class="btick" style="left:calc(${r.avg/max*100}% - 1px)"></span>`:''}</span>
       <span class="bval num">${val.toFixed(1)}%</span>
@@ -434,8 +435,8 @@ function heat(M,limit){
   for(const r of rows){
     h+=`<button class="hname" data-ind="${esc(r.n)}" data-m="${M.key}">${esc(r.n)}</button>`;
     r.shares.forEach((s,i)=>{
-      const rel=s/r.avg-1, strong=Math.abs(rel)>=0.3;
-      const tip=`<b>${esc(r.n)}</b>｜${fmtD(M.days[i])}<br>占比 ${s.toFixed(2)}%（平均 ${r.avg.toFixed(2)}%）<br>成交值 ${yi(r.v[i])} 億<br>相對平均 ${rel>0?'+':''}${(rel*100).toFixed(0)}%`;
+      const oth=(sum(r.shares)-s)/4, rel=oth?s/oth-1:0, strong=Math.abs(rel)>=0.3;   // 跟「其他 4 天」平均比，不含自己
+      const tip=`<b>${esc(r.n)}</b>｜${fmtD(M.days[i])}<br>占比 ${s.toFixed(2)}%（其他 4 天平均 ${oth.toFixed(2)}%）<br>成交值 ${yi(r.v[i])} 億<br>相對其他 4 天 ${rel>0?'+':''}${(rel*100).toFixed(0)}%`;
       h+=`<div class="hcell" data-ind="${esc(r.n)}" data-m="${M.key}" style="background:${heatColor(rel)};color:${strong?'#fff':'var(--ink)'}" data-tip="${esc(tip)}">${s.toFixed(1)}</div>`;
     });
   }
@@ -473,11 +474,11 @@ function notes(){
   $('#notes').innerHTML=[
     ...(TW.live?[`盤中即時：台股開盤時間（平日 09:00～13:30）每 60 秒向鉅亨網抓全部上市櫃股票與 ETF 的累計成交金額與股價，「今天」是盤中累計值（${TW.live.at} 為止），產業占比、熱度、排行都會跟著更新；收盤後官方資料（約 15:52）到了就改用官方資料。三大法人只在收盤後公布，盤中不會變動。網頁切到背景時會暫停更新以節省流量。`]:[]),
     TW.hasOTC
-      ? `台股：含上市＋上櫃（標「櫃」的是上櫃股票）。上市來自臺灣證券交易所「各類指數日成交量值」與個股收盤行情，上櫃來自櫃買中心每日收盤行情（產業成交值由個股加總），最近 5 個交易日，週一到週五 15:52 自動更新。產業依證交所／櫃買中心分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`
+      ? `台股：含上市＋上櫃（標「櫃」的是上櫃股票）。上市來自臺灣證券交易所「各類指數日成交量值」與個股收盤行情，上櫃來自櫃買中心每日收盤行情（產業成交值由個股加總），最近 5 個交易日，週一到週五台北時間 15:52、17:30 自動更新（17:30 那次補上當天三大法人）。產業依證交所／櫃買中心分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`
       : `台股：每日資料載入失敗，目前直接向臺灣證券交易所抓最新 5 個交易日，<b>只有上市、未含上櫃</b>。產業依 TWSE 分類，排除「電子」「化學生技醫療」兩個加總類別避免重複。`,
-    `美股：每天早上由排程自動更新（Nasdaq 公開資料），涵蓋成交值與市值最大的約 ${US.universe} 檔股票，成交值以「收盤價 × 成交量」估算，日期為美東時間。產業是依 Nasdaq 行業代碼整理的中文主題，部分大型股手動調整，與 GICS 略有不同。`,
-    `「大家在買什麼、賣什麼」：成交值本身分不出買賣（每筆成交都有一買一賣），所以台股用證交所／櫃買中心公布的三大法人買賣超（外資含外資自營商），以當日收盤價把張數換算成金額排行；法人資料約在收盤後傍晚公布，所以可能比行情晚一天。美股沒有公開的法人買賣資料，改用「上漲股的成交值」與「下跌股的成交值」推估買盤與賣盤，只是參考。`,
-    `「加溫／退潮」看占比變化而非金額，避免把全市場量縮誤判成資金撤出。「新進榜」＝今天進前 20，但不在 5 日累計前 20。`,
+    `美股：週一到週五台北時間 15:52、17:30 隨排程更新，內容是前一晚美股收盤資料（Nasdaq 公開資料），涵蓋成交值與市值最大的約 ${US.universe} 檔股票，成交值以「收盤價 × 成交量」估算，日期為美東時間。產業是依 Nasdaq 行業代碼整理的中文主題，部分大型股手動調整，與 GICS 略有不同。`,
+    `「大家在買什麼、賣什麼」：成交值本身分不出買賣（每筆成交都有一買一賣），所以台股用證交所／櫃買中心公布的三大法人買賣超（外資含外資自營商），以當日收盤價把張數換算成金額排行；法人資料約在收盤後傍晚公布，所以盤中或傍晚前可能比行情晚一天，此時排行旁的「漲跌」也改用法人資料那一天的漲跌，兩者才對得起來。美股沒有公開的法人買賣資料，改用「漲幅 ≥ 1% 的股票成交值」與「跌幅 ≥ 1% 的股票成交值」推估買盤與賣盤，只是參考。`,
+    `「升溫／降溫」看占比變化而非金額，避免把全市場量縮誤判成冷門；「平常」指前 4 個交易日平均（不含當天）。成交值只代表交易熱度，不代表資金流入或流出。「股票成交值」不含 ETF。「新進榜」＝今天進前 20，但不在 5 日累計前 20。`,
     `僅供觀察資金動向，不構成投資建議。`
   ].map(t=>`<li>${t}</li>`).join('');
 }
@@ -515,7 +516,7 @@ function openSheet(mk,name,refresh){
   $('#sh-stats').innerHTML=
     `<div class="sh-stat"><div class="k">${mode==='today'?'最新一日':'5 日合計'}成交值</div><div class="v num">${yi(vNow)} <small style="font-weight:400;font-size:11px">${M.unit}</small></div></div>`+
     `<div class="sh-stat"><div class="k">占全市場</div><div class="v num">${(mode==='today'?r.today:r.share5).toFixed(1)}%</div></div>`+
-    `<div class="sh-stat"><div class="k">${mode==='today'?'比 5 日平均':'5 日占比變化'}</div><div class="v num ${d>0.3?'up':d<-0.3?'down':'zero'}">${d>0?'+':''}${d.toFixed(1)} 點</div></div>`;
+    `<div class="sh-stat"><div class="k">${mode==='today'?'比前 4 日平均':'5 日占比變化'}</div><div class="v num ${d>0.3?'up':d<-0.3?'down':'zero'}">${d>0?'+':''}${d.toFixed(1)} 點</div></div>`;
   const mx=Math.max(...r.v);
   $('#sh-trend').innerHTML=r.v.map((x,i)=>`<div><i style="height:${Math.max(3,x/mx*28)}px;background:var(--${mk});opacity:${i===4?1:.45}"></i><span>${fmtD(M.days[i])}</span></div>`).join('');
   const key=mode==='today'?(s=>s.v[4]):(s=>s.sum);
@@ -631,8 +632,8 @@ function row(M,s,i,val,max,sub,chg,color){
     `<td style="min-width:96px"><div class="shr"><div class="minibar" style="width:${Math.max(2,Math.abs(val)/max*56)}px;background:${color}"></div><span class="num" style="font-size:12px">${f1(val)}</span></div>${sub?`<span class="flow-lots num">${sub}</span>`:''}</td>`+
     `<td class="r num ${cls(chg)}">${pct(chg)}</td></tr>`;
 }
-function table(el,M,list,getV,getSub,getChg,color,empty){
-  const head=`<thead><tr><th>#</th><th>${M.key==='tw'?'股票':'代號'}</th><th class="hide-sm">產業</th><th>金額</th><th class="r">${mode==='today'?'當日':'5 日'}漲跌</th></tr></thead>`;
+function table(el,M,list,getV,getSub,getChg,color,empty,chgHead){
+  const head=`<thead><tr><th>#</th><th>${M.key==='tw'?'股票':'代號'}</th><th class="hide-sm">產業</th><th>金額</th><th class="r">${chgHead||(mode==='today'?'當日':'5 日')+'漲跌'}</th></tr></thead>`;
   if(!list.length){$(el).innerHTML=head+`<tbody><tr><td colspan="5" class="hint">${empty}</td></tr></tbody>`;return;}
   const max=Math.max(...list.map(s=>Math.abs(getV(s))))||1;
   $(el).innerHTML=head+'<tbody>'+list.map((s,i)=>row(M,s,i,getV(s),max,getSub&&getSub(s),getChg(s),color)).join('')+'</tbody>';
@@ -643,6 +644,11 @@ function instAmts(){
   const days=INST.days, n=mode==='today'?1:5, use=days.slice(-n);
   const by=Object.fromEntries(TW.stocks.map(s=>[s.code,s]));
   const pick=r=>who==='all'?r[0]+r[1]+r[2]:r[+who];
+  // 漲跌要跟法人資料同一段期間：法人比行情晚一天時（盤中、傍晚前），改用法人那幾天的收盤價計算
+  const kL=TW.days.indexOf(use[use.length-1]), kF=TW.days.indexOf(use[0]), aligned=kL===4&&kF===5-n;
+  const chgOf=s=>{ if(aligned) return n===1?s.d1:s.d5;
+    const end=kL>=0?s.cl[kL]:null, base=kF>=1?s.cl[kF-1]:null; return end&&base?+((end/base-1)*100).toFixed(2):null; };
+  const chgHead=aligned?null:(n===1?`${fmtD(use[0])} 漲跌`:'同期漲跌');
   const list=[];
   for(const [code,rows] of Object.entries(INST.s)){
     const s=by[code]; if(!s) continue;              // 只看個股（ETF 等不列入）
@@ -651,21 +657,21 @@ function instAmts(){
       const d=use[j], k=TW.days.indexOf(d), p=(k>=0&&s.cl[k])||s.last||0, x=pick(r);
       lt+=x; amt+=x*p/1e5;                           // 張 × 1000 股 × 價 ÷ 1 億
     });
-    if(lt) list.push({...s,amt,lt});
+    if(lt) list.push({...s,amt,lt,ic:chgOf(s)});
   }
   const period=n===1?fmtD(use[0]):`${fmtD(use[0])}～${fmtD(use[use.length-1])}`;
-  return {list,period};
+  return {list,period,chgHead};
 }
 
 function flowTW(){
   if(!window.INST){$('#flow-tw-meta').textContent='載入中…';return;}
-  const days=INST.days, {list,period}=instAmts();
-  const chg=s=>mode==='today'?s.d1:s.d5, up=css('--up'), down=css('--down');
+  const days=INST.days, {list,period,chgHead}=instAmts();
+  const chg=s=>s.ic, up=css('--up'), down=css('--down');
   $('#flow-tw-meta').textContent=`${WHO[who]}｜${period}｜單位：億元`;
   const buy=list.filter(s=>s.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,20);
   const sell=list.filter(s=>s.amt<0).sort((a,b)=>a.amt-b.amt).slice(0,20);
-  table('#flow-tw-buy',TW,buy,s=>s.amt,s=>lots(s.lt),chg,up,'沒有買超個股');
-  table('#flow-tw-sell',TW,sell,s=>s.amt,s=>lots(s.lt),chg,down,'沒有賣超個股');
+  table('#flow-tw-buy',TW,buy,s=>s.amt,s=>lots(s.lt),chg,up,'沒有買超個股',chgHead);
+  table('#flow-tw-sell',TW,sell,s=>s.amt,s=>lots(s.lt),chg,down,'沒有賣超個股',chgHead);
   // 產業加總
   const ind={}; list.forEach(s=>{ind[s.ind]=(ind[s.ind]||0)+s.amt;});
   const arr=Object.entries(ind).filter(([k])=>k!=='未分類');
@@ -677,12 +683,13 @@ function flowTW(){
 }
 
 function flowUS(){
-  const v=s=>mode==='today'?s.v[4]:s.sum, chg=s=>mode==='today'?s.d1:s.d5;
-  const up=US.stocks.filter(s=>chg(s)>0).sort((a,b)=>v(b)-v(a)).slice(0,20);
-  const dn=US.stocks.filter(s=>chg(s)<0).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  // 漲跌幅至少 1% 才列入，避免小漲 0.01% 也被當成「買盤積極」
+  const v=s=>mode==='today'?s.v[4]:s.sum, chg=s=>mode==='today'?s.d1:s.d5, TH=1;
+  const up=US.stocks.filter(s=>chg(s)>=TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  const dn=US.stocks.filter(s=>chg(s)<=-TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
   $('#flow-us-meta').textContent=`${mode==='today'?fmtD(US.days[4])+' 單日':'近 5 日累計'}｜單位：億美元`;
-  table('#flow-us-buy',US,up,s=>v(s)/100,null,chg,css('--up'),'沒有上漲個股');
-  table('#flow-us-sell',US,dn,s=>v(s)/100,null,chg,css('--down'),'沒有下跌個股');
+  table('#flow-us-buy',US,up,s=>v(s)/100,null,chg,css('--up'),'沒有漲 1% 以上的個股');
+  table('#flow-us-sell',US,dn,s=>v(s)/100,null,chg,css('--down'),'沒有跌 1% 以上的個股');
 }
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
@@ -700,14 +707,14 @@ document.addEventListener('click',e=>{
 function augmentSheet(mk,name){
   $('#sh-sort')?.remove();
   if(mk!=='tw'||!window.INST) return;
-  const {list,period}=instAmts(), A=new Map(list.map(s=>[s.code,s]));
+  const {list,period,chgHead}=instAmts(), A=new Map(list.map(s=>[s.code,s]));
   const box=document.createElement('div'); box.id='sh-sort'; box.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0 4px';
   box.innerHTML=`<div class="seg" role="group" aria-label="排序">${[['v','依成交值'],['buy','法人買超'],['sell','法人賣超']].map(([k,t])=>`<button data-s="${k}" aria-pressed="${sheetSort===k}">${t}</button>`).join('')}</div><span class="hint">法人＝${WHO[who]}｜${period}｜億元</span>`;
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{sheetSort=b.dataset.s;openSheet(mk,name,true);});
   const tbl=$('#sh-table'); tbl.before(box);
-  const up=css('--up'), down=css('--down'), chg=s=>mode==='today'?s.d1:s.d5;
+  const up=css('--up'), down=css('--down'), chg=s=>s.ic;
   if(sheetSort==='v'){                               // 原本的成交值排序，加一欄法人
-    tbl.querySelector('thead tr')?.insertAdjacentHTML('beforeend','<th class="r">法人</th>');
+    tbl.querySelector('thead tr')?.insertAdjacentHTML('beforeend',`<th class="r" title="${WHO[who]}｜${period}">法人</th>`);
     tbl.querySelectorAll('tbody tr[data-stk]').forEach(tr=>{
       const a=A.get(tr.dataset.stk), v=a?a.amt:0;
       tr.insertAdjacentHTML('beforeend',`<td class="r num ${cls(v)}" title="${a?lots(a.lt):'0 張'}">${a?f1(v):'0'}</td>`);
@@ -718,7 +725,7 @@ function augmentSheet(mk,name){
   const inInd=list.filter(s=>inSet(s)&&(sheetSort==='buy'?s.amt>0:s.amt<0)).sort((a,b)=>sheetSort==='buy'?b.amt-a.amt:a.amt-b.amt);
   const top=inInd.slice(0,30), max=Math.max(1e-9,...top.map(s=>Math.abs(s.amt)));
   const color=sheetSort==='buy'?up:down;
-  tbl.innerHTML=`<thead><tr><th>#</th><th>股票</th><th>法人買賣超</th><th class="r">${mode==='today'?'當日':'5 日'}漲跌</th></tr></thead><tbody>`+
+  tbl.innerHTML=`<thead><tr><th>#</th><th>股票</th><th>法人買賣超</th><th class="r">${chgHead||(mode==='today'?'當日':'5 日')+'漲跌'}</th></tr></thead><tbody>`+
     (top.length?top.map((s,i)=>`<tr data-stk="${esc(s.code)}" data-m="tw" data-name="${esc(s.name)}" tabindex="0"><td class="rk">${i+1}</td><td><span class="sname">${esc(s.name)}</span><span class="scode">${s.code}${s.m==='otc'?'<span class="otc">櫃</span>':''}</span></td>`+
       `<td style="min-width:96px"><div class="shr"><div class="minibar" style="width:${Math.max(2,Math.abs(s.amt)/max*56)}px;background:${color}"></div><span class="num" style="font-size:12px">${f1(s.amt)}</span></div><span class="flow-lots num">${lots(s.lt)}</span></td>`+
       `<td class="r num ${cls(chg(s))}">${pct(chg(s))}</td></tr>`).join(''):`<tr><td colspan="4" class="hint">這個產業沒有法人${sheetSort==='buy'?'買超':'賣超'}的個股</td></tr>`)+'</tbody>';
@@ -807,12 +814,23 @@ stamp=function(){
   const lab={intra:`盤中即時｜${TW.live.at} 更新`,close:`今日收盤（即時報價）`,livefail:`即時暫停｜顯示 ${liveAt}`}[twState];
   if(lab) pill.lastElementChild.textContent='｜'+lab;
 };
-// 盤中「最新一日總成交值」只是累計值，不跟 5 日均量比
+// 盤中「最新一日股票成交值」只是累計值，不跟前 4 日均量比；近 5 日模式要標示含今日盤中
 const _render=render;
 render=function(){
   _render();
-  if(TW&&TW.live&&TW.live.intraday&&mode==='today'){
-    const d=$('#sum .kpi[data-mk="tw"] .d'); if(d) d.textContent=`盤中累計至 ${TW.live.at}（全日未結束，不跟 5 日均量比）`;
+  if(!(TW&&TW.live&&TW.live.intraday)) return;
+  const at=TW.live.at, cards=document.querySelectorAll('#sum .kpi[data-mk="tw"] .d');
+  if(mode==='today'){
+    if(cards[0]) cards[0].textContent=`盤中累計至 ${at}（全日未結束，不跟前 4 日均量比）｜不含 ETF`;
+  }else{
+    // 近 5 日：第 5 天只是今天盤中的累計值
+    if(cards[0]) cards[0].textContent=`含今日盤中累計（至 ${at}），日均會偏低｜不含 ETF`;
+    const h=$('#rank-hint'); if(h) h.textContent=`近 5 個交易日累計（含今日盤中至 ${at}）`;
+  }
+  // 10:00 前成交多半來自開盤集合競價，大型權值股比重偏高，產業占比容易失真
+  if(at<'10:00'){
+    if(cards[1]) cards[1].insertAdjacentHTML('beforeend','<br><span style="color:var(--muted)">開盤初期，僅供參考</span>');
+    const m=$('#tw-ind-meta'); if(m) m.textContent+='｜10:00 前占比受開盤集合競價影響，僅供參考';
   }
 };
 
@@ -893,6 +911,21 @@ function renderSub(mk,name){
   box.querySelector('.sub-more')?.addEventListener('click',()=>{showAll=!showAll;openSheet(mk,name,true);});
   box.querySelector('.sub-on button')?.addEventListener('click',()=>{clearFilter();openSheet(mk,name,true);});
   const anchor=$('#sh-sort')||$('#sh-table'); anchor.before(box);
+  if(sel) filteredStats(name,members,key,amt);
+}
+
+// 只看某個細項時，上方統計與 5 日長條也改成那個細項的數字，避免跟整個產業混淆
+function filteredStats(name,members,key,amt){
+  const list=[...members.values()].filter(s=>window.sheetFilter&&sheetFilter(s)); if(!list.length) return;
+  const indV=key({v:TW.ind[name]?TW.ind[name].v:[0,0,0,0,0],sum:TW.ind[name]?TW.ind[name].v.reduce((a,b)=>a+b,0):0});
+  const v=list.reduce((a,s)=>a+key(s),0), f=amt?list.reduce((a,s)=>a+(amt.get(s.code)||0),0):null;
+  $('#sh-stats').innerHTML=
+    `<div class="sh-stat"><div class="k">細項${mode==='today'?'最新一日':'5 日合計'}成交值</div><div class="v num">${yi(v)} <small style="font-weight:400;font-size:11px">億元</small></div></div>`+
+    `<div class="sh-stat"><div class="k">占${esc(name)}</div><div class="v num">${indV?(v/indV*100).toFixed(1):'—'}%</div></div>`+
+    `<div class="sh-stat"><div class="k">細項法人買賣超</div><div class="v num ${f==null?'zero':cls(f)}">${f==null?'—':f1(f)} <small style="font-weight:400;font-size:11px">億</small></div></div>`;
+  const dv=[0,1,2,3,4].map(i=>list.reduce((a,s)=>a+(s.v[i]||0),0)), mx=Math.max(1,...dv);
+  $('#sh-trend').innerHTML=dv.map((x,i)=>`<div><i style="height:${Math.max(3,x/mx*28)}px;background:var(--tw);opacity:${i===4?1:.45}"></i><span>${fmtD(TW.days[i])}</span></div>`).join('');
+  $('#sh-title').textContent=`${name}｜${sheetFilterName}`;
 }
 
 const _open=openSheet;

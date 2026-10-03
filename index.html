@@ -961,7 +961,7 @@ loadSub().catch(()=>{});
 .ins-src.rule{background:var(--chip);color:var(--ink2)}
 .ins-text{font-size:13.5px;line-height:1.75;color:var(--ink)}
 .ins-text p{margin:0}
-.ins-text.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ins-text.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .ins-more{align-self:flex-start;border:0;background:none;color:var(--tw);font:inherit;font-size:12px;cursor:pointer;padding:0}
 .ins-chips{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 0 2px;margin:2px 0 0}
 .ins-chips::-webkit-scrollbar{display:none}
@@ -976,6 +976,10 @@ loadSub().catch(()=>{});
 .ins-it b{flex:none;font-weight:700}
 .ins-it .sc{flex:none;color:var(--muted);font-family:var(--mono);font-size:11px}
 .ins-it .tx{color:var(--ink2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ins-nw{display:block;margin:-4px 0 4px;padding:0 4px 2px;font-size:11px;color:var(--tw);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ins-nw:hover{text-decoration:underline}
+.ins-text a{color:var(--tw);text-decoration:none}
+.ins-text a:hover{text-decoration:underline}
 .ins-mem{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px 6px}
 .ins-mem button{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:5px;padding:1px 6px;cursor:pointer}
 .sig{display:inline-block;font-size:10px;font-weight:700;line-height:1.5;border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap;vertical-align:1px}
@@ -987,16 +991,19 @@ loadSub().catch(()=>{});
 let P=null, sel=null, full=false, openSub=null;
 function load(){ if(window.INSIGHT) return Promise.resolve();
   return P||(P=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-insight.js';s.onload=ok;s.onerror=()=>{P=null;no()};document.head.appendChild(s);})); }
-const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
-const stockIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name)}"><b>${esc(x.m==='us'?x.code:x.name)}</b><span class="sc">${esc(x.m==='us'?'':x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`;
-const indIt=x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`;
+// 只支援 **粗體** 與 [新聞標題](https://…) 兩種格式
+const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+// 有相關新聞的訊號下面多一行新聞標題（點開原文）
+const nw=x=>x.news&&x.news.length?`<a class="ins-nw" href="${esc(x.news[0].url)}" target="_blank" rel="noopener">新聞｜${esc(x.news[0].title)}</a>`:'';
+const stockIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name)}"><b>${esc(x.m==='us'?x.code:x.name)}</b><span class="sc">${esc(x.m==='us'?'':x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`+nw(x);
+const indIt=x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`+nw(x);
 
 // 分類：[id, 標籤文字, 顏色, 市場, 取資料, 畫一項]
 function groups(I){
   const S=t=>I.signals.filter(x=>x.type===t);
   return [
     ['ih','產業升溫','b','tw',I.ind_hot,indIt],
-    ['sh','細項轉熱','b','tw',I.sub_hot,(x,i)=>`<button class="ins-it" data-sub="${i}"><b>${esc(x.label)}</b>${x.chain==='自訂'?'<span class="sc">自訂</span>':''}<span class="tx">${esc(x.text)}</span></button>`+
+    ['sh','細項轉熱','b','tw',I.sub_hot,(x,i)=>`<button class="ins-it" data-sub="${i}"><b>${esc(x.label)}</b>${x.chain==='自訂'?'<span class="sc">自訂</span>':''}<span class="tx">${esc(x.text)}</span></button>`+nw(x)+
       (openSub===i?`<div class="ins-mem">${x.codes.map(c=>{const s=TW.stocks.find(z=>z.code===c);return s?`<button data-stk="${c}" data-m="tw" data-name="${esc(s.name)}">${esc(s.name)}</button>`:''}).join('')}</div>`:'')],
     ['vol','成交值暴增','n','tw',S('成交值暴增'),stockIt],
     ['fb','外資連買','b','tw',S('外資連買'),stockIt],

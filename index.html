@@ -194,9 +194,13 @@ td.r,th.r{text-align:right}
   <div class="sum" id="sum"></div>
 
   <section id="ins-sec" hidden>
-  <div class="h2row"><h2>今日重點</h2><span class="hint" id="ins-meta"></span></div>
-  <div class="card ins-sum"><div class="ins-src" id="ins-src"></div><div id="ins-text"></div></div>
-  <div class="ins-grid" id="ins-grid"></div>
+  <div class="card ins-card">
+    <div class="ins-top"><h2>今日重點</h2><span class="ins-src" id="ins-src"></span><span class="hint" id="ins-meta"></span></div>
+    <div class="ins-text clamp" id="ins-text"></div>
+    <button class="ins-more" id="ins-toggle">展開全文</button>
+    <div class="ins-chips" id="ins-chips" role="tablist" aria-label="異常訊號"></div>
+    <div class="ins-list" id="ins-list"></div>
+  </div>
 </section>
 
   <section>
@@ -949,66 +953,81 @@ loadSub().catch(()=>{});
 
 
 <style>
-#ins-sec .ins-sum{line-height:1.8;font-size:14px}
-.ins-src{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--panel);background:var(--ink);border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.ins-card{display:flex;flex-direction:column;gap:6px}
+.ins-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.ins-top h2{font-size:17px}
+.ins-top .hint{margin-left:auto;font-size:11px}
+.ins-src{font-size:11px;font-weight:700;color:var(--panel);background:var(--ink);border-radius:999px;padding:1px 9px}
 .ins-src.rule{background:var(--chip);color:var(--ink2)}
-#ins-text p{margin:2px 0}
-.ins-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-@media (max-width:1000px){.ins-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){.ins-grid{grid-template-columns:1fr}}
-.ins-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
-.ins-box h3{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:6px}
-.ins-box h3 small{margin-left:auto;font-size:11px;color:var(--muted);font-weight:400}
-.ins-it{display:block;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:6px 6px;margin:0 -6px;width:calc(100% + 12px);border-radius:7px;cursor:pointer;font-size:13px;line-height:1.5}
+.ins-text{font-size:13.5px;line-height:1.75;color:var(--ink)}
+.ins-text p{margin:0}
+.ins-text.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ins-more{align-self:flex-start;border:0;background:none;color:var(--tw);font:inherit;font-size:12px;cursor:pointer;padding:0}
+.ins-chips{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 0 2px;margin:2px 0 0}
+.ins-chips::-webkit-scrollbar{display:none}
+.ins-chip{flex:none;font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.ins-chip b{font-family:var(--mono);margin-left:4px}
+.ins-chip .d{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.ins-chip[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ins-list:empty{display:none}
+.ins-list{border-top:1px solid var(--line);padding-top:4px}
+.ins-it{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:6px 4px;border-radius:6px;cursor:pointer;min-width:0}
 .ins-it:hover{background:var(--hover)}
-.ins-it b{font-weight:700}
-.ins-it .sc{color:var(--muted);font-family:var(--mono);font-size:11px;margin-left:4px}
-.ins-it .tx{display:block;color:var(--ink2);font-size:12px}
-.ins-more{border:0;background:none;color:var(--tw);font:inherit;font-size:12px;cursor:pointer;padding:2px 0}
-.ins-mem{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px}
+.ins-it b{flex:none;font-weight:700}
+.ins-it .sc{flex:none;color:var(--muted);font-family:var(--mono);font-size:11px}
+.ins-it .tx{color:var(--ink2);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ins-mem{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px 6px}
 .ins-mem button{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:5px;padding:1px 6px;cursor:pointer}
 .sig{display:inline-block;font-size:10px;font-weight:700;line-height:1.5;border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap;vertical-align:1px}
 .sig.b{color:var(--up);border:1px solid var(--up)} .sig.s{color:var(--down);border:1px solid var(--down)} .sig.n{color:var(--ink2);border:1px solid var(--line)}
+.d.b{background:var(--up)} .d.s{background:var(--down)} .d.n{background:var(--muted)}
 </style>
 <script>
 (function(){
-let P=null;
+let P=null, sel=null, full=false, openSub=null;
 function load(){ if(window.INSIGHT) return Promise.resolve();
   return P||(P=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-insight.js';s.onload=ok;s.onerror=()=>{P=null;no()};document.head.appendChild(s);})); }
 const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
-const GROUPS=[ // [類型, 標題, 顏色]
-  ['成交值暴增','成交值暴增','n'],['外資連買','外資連續買超','b'],['投信連買','投信連續買超','b'],['投信首度大買','投信首度大買','b'],
-  ['外資連賣','外資連續賣超','s'],['投信連賣','投信連續賣超','s'],['法人逆勢買','法人逆勢買（股價跌）','b'],['法人逆勢賣','法人逆勢賣（股價漲）','s']];
-const open3={};
+const stockIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name)}"><b>${esc(x.m==='us'?x.code:x.name)}</b><span class="sc">${esc(x.m==='us'?'':x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`;
+const indIt=x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`;
 
-function box(id,title,items,mk,render){
-  if(!items.length) return '';
-  const all=open3[id], list=all?items:items.slice(0,4);
-  return `<div class="ins-box" data-mk="${mk}"><h3><span class="flag ${mk}">${mk.toUpperCase()}</span>${title}<small>${items.length} 個</small></h3>`+
-    list.map(render).join('')+(items.length>4?`<button class="ins-more" data-box="${id}">${all?'收起':'看全部 '+items.length+' 個'}</button>`:'')+'</div>';
+// 分類：[id, 標籤文字, 顏色, 市場, 取資料, 畫一項]
+function groups(I){
+  const S=t=>I.signals.filter(x=>x.type===t);
+  return [
+    ['ih','產業升溫','b','tw',I.ind_hot,indIt],
+    ['sh','細項轉熱','b','tw',I.sub_hot,(x,i)=>`<button class="ins-it" data-sub="${i}"><b>${esc(x.label)}</b>${x.chain==='自訂'?'<span class="sc">自訂</span>':''}<span class="tx">${esc(x.text)}</span></button>`+
+      (openSub===i?`<div class="ins-mem">${x.codes.map(c=>{const s=TW.stocks.find(z=>z.code===c);return s?`<button data-stk="${c}" data-m="tw" data-name="${esc(s.name)}">${esc(s.name)}</button>`:''}).join('')}</div>`:'')],
+    ['vol','成交值暴增','n','tw',S('成交值暴增'),stockIt],
+    ['fb','外資連買','b','tw',S('外資連買'),stockIt],
+    ['tb','投信連買','b','tw',S('投信連買'),stockIt],
+    ['tf','投信首買','b','tw',S('投信首度大買'),stockIt],
+    ['fs','外資連賣','s','tw',S('外資連賣'),stockIt],
+    ['ts','投信連賣','s','tw',S('投信連賣'),stockIt],
+    ['rb','法人逆勢買','b','tw',S('法人逆勢買'),stockIt],
+    ['rs','法人逆勢賣','s','tw',S('法人逆勢賣'),stockIt],
+    ['ic','產業降溫','s','tw',I.ind_cold,indIt],
+    ['us','美股量增','n','us',I.us_signals,stockIt],
+  ].filter(g=>g[4].length&&(market==='all'||g[3]===market));
 }
-const stockIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name)}"><b>${esc(x.m==='us'?x.code:x.name)}</b><span class="sc">${esc(x.m==='us'?x.name:x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`;
 
 function renderIns(){
   const I=window.INSIGHT; if(!I) return;
-  const F=I.facts, sec=$('#ins-sec'); sec.hidden=false;
+  const F=I.facts; $('#ins-sec').hidden=false;
   const ai=I.summary.source==='ai';
   $('#ins-src').className='ins-src'+(ai?'':' rule');
-  $('#ins-src').textContent=ai?`AI 盤後解讀｜${I.summary.at}`:`自動摘要｜${I.summary.at}`;
-  $('#ins-text').innerHTML=I.summary.text.split('\n').filter(Boolean).map(l=>`<p>${md(l)}</p>`).join('');
-  $('#ins-meta').textContent=`台股 ${fmtD(F.tw_date)}｜法人 ${fmtD(F.inst_date)}｜美股 ${fmtD(F.us_date)}｜收盤後更新，盤中不變`;
-  let h='';
-  h+=box('ih','交易升溫的產業',I.ind_hot,'tw',x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`);
-  h+=box('sh','細項族群轉熱',I.sub_hot,'tw',(x,i)=>`<button class="ins-it" data-sub="${i}"><b>${esc(x.label)}</b>${x.chain==='自訂'?'<span class="sc">自訂</span>':''}<span class="tx">${esc(x.text)}</span></button>`+
-    (open3['sub'+i]?`<div class="ins-mem">${x.codes.map(c=>{const s=TW.stocks.find(z=>z.code===c);return s?`<button data-stk="${c}" data-m="tw" data-name="${esc(s.name)}">${esc(s.name)}</button>`:''}).join('')}</div>`:''));
-  for(const [t,title] of GROUPS) h+=box(t,title,I.signals.filter(x=>x.type===t),'tw',stockIt);
-  h+=box('ic','交易降溫的產業',I.ind_cold,'tw',x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`);
-  h+=box('us','美股量能暴增',I.us_signals,'us',stockIt);
-  $('#ins-grid').innerHTML=h;
-  $('#ins-grid').querySelectorAll('.ins-more').forEach(b=>b.onclick=()=>{open3[b.dataset.box]=!open3[b.dataset.box];renderIns();applyMarket();});
-  $('#ins-grid').querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{const k='sub'+b.dataset.sub;open3[k]=!open3[k];renderIns();applyMarket();});
-  applyMarket();
+  $('#ins-src').textContent=ai?'AI 解讀':'自動摘要';
+  $('#ins-meta').textContent=`台股 ${fmtD(F.tw_date)}｜法人 ${fmtD(F.inst_date)}｜美股 ${fmtD(F.us_date)}｜${I.summary.at} 產生`;
+  const tx=$('#ins-text'); tx.innerHTML=I.summary.text.split('\n').filter(Boolean).map(l=>`<p>${md(l)}</p>`).join('');
+  tx.classList.toggle('clamp',!full); $('#ins-toggle').textContent=full?'收起':'展開全文';
+  const G=groups(I); if(sel&&!G.find(g=>g[0]===sel)) sel=null;
+  $('#ins-chips').innerHTML=G.map(g=>`<button class="ins-chip" role="tab" data-g="${g[0]}" aria-selected="${sel===g[0]}"><span class="d ${g[2]}"></span>${g[1]}<b>${g[4].length}</b></button>`).join('');
+  const g=G.find(g=>g[0]===sel);
+  $('#ins-list').innerHTML=g?g[4].map(g[5]).join(''):'';
+  $('#ins-chips').querySelectorAll('.ins-chip').forEach(b=>b.onclick=()=>{sel=sel===b.dataset.g?null:b.dataset.g;openSub=null;renderIns();});
+  $('#ins-list').querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{const i=+b.dataset.sub;openSub=openSub===i?null:i;renderIns();});
 }
+$('#ins-toggle').onclick=()=>{full=!full;renderIns();};
 
 // 在所有股票列加上訊號標籤（最多 2 個）
 const cls3=t=>/連買|首買|逆勢買/.test(t)?'b':/連賣|逆勢賣/.test(t)?'s':'n';
@@ -1025,6 +1044,7 @@ function applyTags(root){
 }
 const _render=render; render=function(){ _render(); applyTags(); };
 const _open=openSheet; openSheet=function(mk,name,refresh){ _open(mk,name,refresh); applyTags($('#sheet')); };
+const _am=applyMarket; applyMarket=function(){ _am(); renderIns(); };   // 切換台股／美股時，標籤列只顯示該市場
 load().then(()=>{ renderIns(); applyTags(); }).catch(()=>{});
 })();
 </script>

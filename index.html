@@ -198,8 +198,10 @@ td.r,th.r{text-align:right}
     <div class="ins-top"><h2>今日重點</h2><span class="ins-src" id="ins-src"></span><span class="hint" id="ins-meta"></span></div>
     <div class="ins-text clamp" id="ins-text"></div>
     <button class="ins-more" id="ins-toggle">展開全文</button>
+    <div class="ins-mkt" id="ins-mkt"></div>
     <div class="ins-chips" id="ins-chips" role="tablist" aria-label="異常訊號"></div>
     <div class="ins-list" id="ins-list"></div>
+    <div class="ins-hid" id="ins-hid"></div>
   </div>
 </section>
 
@@ -625,7 +627,8 @@ if(canHover){
 <script>
 (function(){
 let who='all', instP=null;
-const WHO={all:'三大法人合計','0':'外資','1':'投信','2':'自營商'};
+// 資料每天 [外資, 投信, 自營商自行, 自營商避險]；避險多為權證避險，與看多看空無關，合計不列入
+const WHO={all:'三大法人合計（不含避險）','0':'外資','1':'投信','2':'自營商（自行買賣）'};
 const f1=x=>{const a=Math.abs(x);return (x<0?'−':'')+(a>=100?a.toFixed(0):a>=10?a.toFixed(1):a.toFixed(2));};
 const lots=x=>(x>0?'+':x<0?'−':'')+Math.abs(x).toLocaleString('en-US')+' 張';
 
@@ -791,8 +794,9 @@ async function fetchAll(codes){
 async function refresh(){
   if(busy||!window.TW_SNAPSHOT||!TW||!US) return; busy=true;
   try{
-    const base=window.TW_SNAPSHOT, today=tpe().ymd, U=universe();
+    const base=window.TW_SNAPSHOT, now=tpe(), today=now.ymd, U=universe();
     if(base.days[base.days.length-1]===today&&!inSession()) return;   // 盤後官方資料已到，不用即時
+    if(!TEST&&(now.dow<1||now.dow>5||now.hm<900)) return;              // 週末、開盤前不可能有今天的資料，不抓（省流量、避免被限流）
     const q=await fetchAll([...U.keys()]);
     const rows=[], otc=[], bf={}; let n=0, lastT=0;
     for(const x of q){
@@ -969,6 +973,10 @@ loadSub().catch(()=>{});
 .ins-chip b{font-family:var(--mono);margin-left:4px}
 .ins-chip .d{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .ins-chip[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ins-mkt{font-size:11.5px;color:var(--ink2);line-height:1.6}
+.ins-mkt:empty,.ins-hid:empty{display:none}
+.ins-hid{font-size:10.5px;color:var(--muted)}
+.ins-bt{font-size:11px;color:var(--ink2);background:var(--chip);border-radius:6px;padding:4px 8px;margin:2px 0 4px}
 .ins-list:empty{display:none}
 .ins-list{border-top:1px solid var(--line);padding-top:4px}
 .ins-it{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:6px 4px;border-radius:6px;cursor:pointer;min-width:0}
@@ -988,7 +996,7 @@ loadSub().catch(()=>{});
 </style>
 <script>
 (function(){
-let P=null, sel=null, full=false, openSub=null;
+let P=null, sel=null, full=false, openSub=null, openUs=null;
 function load(){ if(window.INSIGHT) return Promise.resolve();
   return P||(P=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-insight.js';s.onload=ok;s.onerror=()=>{P=null;no()};document.head.appendChild(s);})); }
 // 只支援 **粗體** 與 [新聞標題](https://…) 兩種格式
@@ -998,10 +1006,27 @@ const nw=x=>x.news&&x.news.length?`<a class="ins-nw" href="${esc(x.news[0].url)}
 const stockIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name)}"><b>${esc(x.m==='us'?x.code:x.name)}</b><span class="sc">${esc(x.m==='us'?'':x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`+nw(x);
 const indIt=x=>`<button class="ins-it" data-ind="${esc(x.ind)}" data-m="tw"><b>${esc(x.ind)}</b><span class="tx">${esc(x.text)}</span></button>`+nw(x);
 
+// 籌碼分數前 10、台美連動（資料在 data-stats.js）
+const scoreIt=x=>`<button class="ins-it" data-stk="${esc(x.code)}" data-m="tw" data-name="${esc(x.name)}"><b>${esc(x.name)}</b><span class="sc">${esc(x.code)}${x.m==='otc'?' 櫃':''}</span><span class="tx">${esc(x.text)}</span></button>`+nw(x);
+const pc=v=>v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
+const ustwIt=(x,i)=>`<button class="ins-it" data-ustw="${i}"><b>${esc(x.group)}</b><span class="tx">美股 ${fmtD(x.us_date)} ${pc(x.us_avg)} → 台股${x.tw_date?' '+fmtD(x.tw_date)+' '+pc(x.tw_avg):' 待開盤'}｜歷史相關 ${x.corr==null?'—':x.corr}</span></button>`+
+  (openUs===i?`<div class="ins-mem">${x.us.map(([t,c])=>`<button data-stk="${t}" data-m="us" data-name="${t}">${t} ${pc(c)}</button>`).join('')}${x.tw.map(c=>{const s=TW.stocks.find(z=>z.code===c);return s?`<button data-stk="${c}" data-m="tw" data-name="${esc(s.name)}">${esc(s.name)}</button>`:''}).join('')}</div>`:'');
+// 每一類對應的回測鍵
+const BT={vol:'成交值暴增',fb:'外資連買',tb:'投信連買',tf:'投信首度大買',fs:'外資連賣',ts:'投信連賣',rb:'法人逆勢買',rs:'法人逆勢賣',mi:'法人賣融資增',sb:'借券賣出大增'};
+function btLine(id){
+  const T=window.STATS; if(!T) return '';
+  if(id==='sc'){ const b=T.score_bt||{}; return b.n?`一年回測（跟同流動性股票比）：分數前 10% 之後 5 日平均超額 ${pc(b.top_avg)}、後 10% ${pc(b.bot_avg)}，前 10% 有 ${b.top_hit}% 的日子跑贏｜判定「${b.verdict}」`:'回測樣本不足'; }
+  if(id==='ustw') return '相關係數＝美股族群前一晚漲跌與台股隔天對應族群漲跌的關聯（近 120 次，1＝完全同向、0＝無關）';
+  const b=T.bt&&T.bt[BT[id]]; if(!b||!b.n5) return '';
+  return `一年回測（跟同流動性股票比，${b.n5} 次）：之後 5 日平均超額 ${pc(b.avg5)}、20 日 ${pc(b.avg20)}｜判定「${b.verdict}${b.horizon?`，${b.horizon} 日`:''}」`;
+}
+
 // 分類：[id, 標籤文字, 顏色, 市場, 取資料, 畫一項]
 function groups(I){
-  const S=t=>I.signals.filter(x=>x.type===t);
+  const S=t=>I.signals.filter(x=>x.type===t), T=window.STATS||{};
   return [
+    ['sc','籌碼分數前10','b','tw',T.score_top||[],scoreIt],
+    ['ustw','美股→台股','n','all',T.ustw||[],ustwIt],
     ['ih','產業升溫','b','tw',I.ind_hot,indIt],
     ['sh','細項轉熱','b','tw',I.sub_hot,(x,i)=>`<button class="ins-it" data-sub="${i}"><b>${esc(x.label)}</b>${x.chain==='自訂'?'<span class="sc">自訂</span>':''}<span class="tx">${esc(x.text)}</span></button>`+nw(x)+
       (openSub===i?`<div class="ins-mem">${x.codes.map(c=>{const s=TW.stocks.find(z=>z.code===c);return s?`<button data-stk="${c}" data-m="tw" data-name="${esc(s.name)}">${esc(s.name)}</button>`:''}).join('')}</div>`:'')],
@@ -1013,9 +1038,11 @@ function groups(I){
     ['ts','投信連賣','s','tw',S('投信連賣'),stockIt],
     ['rb','法人逆勢買','b','tw',S('法人逆勢買'),stockIt],
     ['rs','法人逆勢賣','s','tw',S('法人逆勢賣'),stockIt],
+    ['mi','法人賣融資增','s','tw',S('法人賣融資增'),stockIt],
+    ['sb','借券大增','s','tw',S('借券賣出大增'),stockIt],
     ['ic','產業降溫','s','tw',I.ind_cold,indIt],
     ['us','美股量增','n','us',I.us_signals,stockIt],
-  ].filter(g=>g[4].length&&(market==='all'||g[3]===market));
+  ].filter(g=>g[4].length&&(market==='all'||g[3]===market||g[3]==='all'));
 }
 
 function renderIns(){
@@ -1029,15 +1056,26 @@ function renderIns(){
   tx.classList.toggle('clamp',!full); $('#ins-toggle').textContent=full?'收起':'展開全文';
   const G=groups(I); if(sel&&!G.find(g=>g[0]===sel)) sel=null;
   $('#ins-chips').innerHTML=G.map(g=>`<button class="ins-chip" role="tab" data-g="${g[0]}" aria-selected="${sel===g[0]}"><span class="d ${g[2]}"></span>${g[1]}<b>${g[4].length}</b></button>`).join('');
-  const g=G.find(g=>g[0]===sel);
-  $('#ins-list').innerHTML=g?g[4].map(g[5]).join(''):'';
-  $('#ins-chips').querySelectorAll('.ins-chip').forEach(b=>b.onclick=()=>{sel=sel===b.dataset.g?null:b.dataset.g;openSub=null;renderIns();});
+  const g=G.find(g=>g[0]===sel), bl=g?btLine(g[0]):'';
+  $('#ins-list').innerHTML=g?(bl?`<div class="ins-bt">${esc(bl)}</div>`:'')+g[4].map(g[5]).join(''):'';
+  $('#ins-chips').querySelectorAll('.ins-chip').forEach(b=>b.onclick=()=>{sel=sel===b.dataset.g?null:b.dataset.g;openSub=null;openUs=null;renderIns();});
   $('#ins-list').querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{const i=+b.dataset.sub;openSub=openSub===i?null:i;renderIns();});
+  $('#ins-list').querySelectorAll('[data-ustw]').forEach(b=>b.onclick=()=>{const i=+b.dataset.ustw;openUs=openUs===i?null:i;renderIns();});
+  // 大盤籌碼一行＋資料檢查＋被隱藏的訊號
+  const T=window.STATS, mk=T&&T.market;
+  let ln='';
+  if(mk&&mk.fut_oi!=null) ln+=`外資台指期淨${mk.fut_oi<0?'空':'多'} ${Math.abs(mk.fut_oi/10000).toFixed(1)} 萬口${mk.fut_oi_chg!=null?`（${mk.fut_oi_chg>0?'+':''}${mk.fut_oi_chg.toLocaleString()}）`:''}`;
+  if(mk&&mk.opt_call!=null) ln+=`｜外資選擇權未平倉 買權 ${mk.opt_call>0?'+':''}${mk.opt_call} 億、賣權 ${mk.opt_put>0?'+':''}${mk.opt_put} 億`;
+  if(mk&&mk.margin!=null) ln+=`｜融資 ${mk.margin.toLocaleString()} 億（${mk.margin_chg>0?'+':''}${mk.margin_chg}）`;
+  if(T) ln+=`｜資料檢查：${T.health.length?`<span title="${esc(T.health.join('；'))}" style="color:var(--hot3)">${T.health.length} 項提醒</span>`:'正常'}`;
+  $('#ins-mkt').innerHTML=ln;
+  $('#ins-hid').textContent=T&&T.hidden&&T.hidden.length?`一年回測沒有統計優勢、已隱藏：${T.hidden.join('、')}`:'';
 }
+window.__renderIns=renderIns;
 $('#ins-toggle').onclick=()=>{full=!full;renderIns();};
 
 // 在所有股票列加上訊號標籤（最多 2 個）
-const cls3=t=>/連買|首買|逆勢買/.test(t)?'b':/連賣|逆勢賣/.test(t)?'s':'n';
+const cls3=t=>/連買|首買|逆勢買/.test(t)?'b':/連賣|逆勢賣|融資增|借券/.test(t)?'s':'n';
 function applyTags(root){
   const T=window.INSIGHT&&INSIGHT.tags; if(!T) return;
   (root||document).querySelectorAll('tr[data-stk]').forEach(tr=>{
@@ -1103,8 +1141,9 @@ tr[data-stk]:hover td{background:var(--hover)}
     </div>
     <div class="stk-chart" id="stk-chart"></div>
     <div class="stk-legend" id="stk-legend"></div>
+    <div id="stk-chip"></div>
     <div id="stk-inst-wrap">
-      <div class="stk-h3"><span>三大法人買賣超</span><small>單位：張｜紅＝買超、綠＝賣超</small></div>
+      <div class="stk-h3"><span>三大法人買賣超</span><small>單位：張｜自營商只算自行買賣，合計不含避險</small></div>
       <div id="stk-inst"></div>
     </div>
     <div class="sh-note" id="stk-note"></div>
@@ -1269,6 +1308,7 @@ function setView(v){
 }
 function openStock(m,code,name){
   cur={m,code,name};
+  stk.dataset.m=m; stk.dataset.code=code;   // 讓其他模組（籌碼統計）知道目前是哪一檔
   $('#stk-flag').className='flag '+m; $('#stk-flag').textContent=m.toUpperCase();
   $('#stk-title').textContent=m==='tw'?`${name} ${code}`:`${code} ${name}`;
   $('#stk-quote').innerHTML='';
@@ -1302,6 +1342,65 @@ head.addEventListener('touchstart',e=>{y0=e.touches[0].clientY},{passive:true});
 head.addEventListener('touchmove',e=>{if(y0==null)return;const dy=e.touches[0].clientY-y0;if(dy>0&&innerWidth<=700)stk.style.transform=`translateY(${dy}px)`},{passive:true});
 head.addEventListener('touchend',e=>{if(y0==null)return;const dy=e.changedTouches[0].clientY-y0;stk.style.transform='';y0=null;if(dy>90&&innerWidth<=700)closeStock()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cur&&view==='intra')draw(false);});
+})();
+</script>
+
+<!-- 籌碼統計（網站版專用，assemble.py 插在 </body> 前、insight 之後）。資料：site/data-stats.js（insights.py＋analytics.py 用一年歷史算）
+     1. 產業長條右側的徽章改成「熱度分數」＝成交值相對自己 20 日的 z 分數（盤中即時模式時沿用占比差，因為半天的量無法跟全日比）
+     2. 產業明細上方統計加「熱度、上漲家數」
+     3. 個股面板加「籌碼」：熱度、周轉率、融資、借券、集保大戶、籌碼分數 -->
+<style>
+#stk-chip:empty{display:none}
+.chip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 2px}
+@media (max-width:600px){.chip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.chip-c{background:var(--chip);border-radius:8px;padding:6px 8px;min-width:0}
+.chip-c .k{font-size:11px;color:var(--muted)}
+.chip-c .v{font-family:var(--mono);font-size:14px;font-weight:600}
+.chip-c .s{font-size:10px;color:var(--muted)}
+</style>
+<script>
+(function(){
+let P=null;
+function load(){ if(window.STATS) return Promise.resolve();
+  return P||(P=new Promise((ok,no)=>{const s=document.createElement('script');s.src='data-stats.js';s.onload=ok;s.onerror=()=>{P=null;no()};document.head.appendChild(s);})); }
+const on=()=>window.STATS&&TW&&STATS.asof===TW.days[4];   // 盤中即時（今天）時不用歷史 z
+const fz=z=>z==null?'—':(z>0?'+':'')+z.toFixed(1);
+const zc=z=>z==null?'flat':z>=1?'hot':z<=-1?'cold':'flat';
+
+function patchBars(){
+  if(!on()||mode!=='today') return;
+  document.querySelectorAll('#tw-ind .brow').forEach(b=>{
+    const x=STATS.ind[b.dataset.ind]; const d=b.querySelector('.delta'); if(!x||!d) return;
+    d.className='delta num '+zc(x.z); d.textContent=fz(x.z);
+    b.dataset.tip=(b.dataset.tip||'')+`<br>熱度分數 ${fz(x.z)}（成交值是 20 日平均的 ${x.ratio} 倍）｜上漲家數 ${x.up??'—'}%`;
+  });
+  const m=$('#tw-ind-meta'); if(m) m.textContent='長條＝最新一日占比，黑線＝前 4 日平均占比；右側＝熱度分數（成交值相對自己 20 日，+2 以上少見地熱、−2 以下少見地冷）';
+}
+function patchSheet(mk,name){
+  if(mk!=='tw'||!on()||window.sheetFilter) return;
+  const x=STATS.ind[name]; const box=$('#sh-stats'); if(!x||!box||!box.children[2]) return;
+  box.children[2].innerHTML=`<div class="k">熱度分數｜上漲家數</div><div class="v num ${x.z>=1?'up':x.z<=-1?'down':'zero'}">${fz(x.z)}<small style="font-weight:400;font-size:11px;color:var(--muted)">｜${x.up??'—'}%</small></div>`;
+}
+function chipBlock(){
+  const el=$('#stk-chip'), stk=$('#stk'); if(!el||!stk) return;
+  el.innerHTML='';
+  if(stk.dataset.m!=='tw'||!window.STATS) return;
+  const r=STATS.stk[stk.dataset.code]; if(!r) return;
+  const [z,turn,big,bigd,mg5,sbl5,mg,sbl,score]=r;
+  const c=(k,v,s,cl)=>`<div class="chip-c"><div class="k">${k}</div><div class="v ${cl||''}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  el.innerHTML=`<div class="stk-h3"><span>籌碼</span><small>${fmtD(STATS.asof)} 收盤後資料</small></div><div class="chip-grid">`+
+    c('熱度分數',fz(z),'相對自己 20 日',z>=1?'up':z<=-1?'down':'')+
+    c('周轉率',turn==null?'—':turn.toFixed(2)+'%','成交值÷市值')+
+    c('融資 5 日',mg5==null?'—':(mg5>0?'+':'')+mg5+'%',mg==null?'':'餘額 '+mg.toLocaleString()+' 張',mg5>=10?'up':mg5<=-10?'down':'')+
+    c('借券賣出 5 日',sbl5==null?'—':(sbl5>0?'+':'')+sbl5.toLocaleString()+' 張',sbl==null?'':'餘額 '+sbl.toLocaleString()+' 張')+
+    c('大戶持股',big==null?'—':big.toFixed(1)+'%','400 張以上｜'+(bigd==null?'週變化下週起':((bigd>0?'+':'')+bigd.toFixed(2)+' 點')))+
+    c('籌碼分數',score==null?'—':score.toFixed(2),score==null?'流動性不足未評分':'法人＋投信＋熱度＋動能−融資',score>=1?'up':score<=-1?'down':'')+
+    `</div>`;
+}
+const _render=render; render=function(){ _render(); patchBars(); };
+const _open=openSheet; openSheet=function(mk,name,refresh){ _open(mk,name,refresh); patchSheet(mk,name); };
+new MutationObserver(chipBlock).observe(document.getElementById('stk'),{attributes:true,attributeFilter:['data-code']});
+load().then(()=>{ patchBars(); chipBlock(); if(window.__renderIns) __renderIns(); }).catch(()=>{});
 })();
 </script>
 

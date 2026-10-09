@@ -191,6 +191,17 @@ td.r,th.r{text-align:right}
     <span class="hint">點產業看相關個股｜紅漲綠跌</span>
   </div>
 
+  <section id="tn-sec" hidden>
+  <div class="card tn-card">
+    <div class="tn-top"><h2>今晚三件事</h2><span class="hint" id="tn-meta"></span></div>
+    <div class="tn-blk"><div class="tn-h"><span class="flag tw">TW</span><b id="tn-twd"></b></div><div class="tn-head" id="tn-head"></div><div id="tn-tw"></div></div>
+    <div class="tn-blk"><div class="tn-h"><span class="flag us">US</span><b id="tn-usd"></b></div><div id="tn-us"></div></div>
+    <div class="tn-blk"><div class="tn-h"><b>明天看</b></div><ul class="tn-watch" id="tn-watch"></ul></div>
+    <details class="tn-ai" id="tn-ai"><summary id="tn-ai-s"></summary><div id="tn-ai-t"></div></details>
+    <button class="tn-more" id="tn-more"></button>
+  </div>
+</section>
+
   <div class="sum" id="sum"></div>
 
   <section id="ins-sec" hidden>
@@ -1401,6 +1412,66 @@ const _render=render; render=function(){ _render(); patchBars(); };
 const _open=openSheet; openSheet=function(mk,name,refresh){ _open(mk,name,refresh); patchSheet(mk,name); };
 new MutationObserver(chipBlock).observe(document.getElementById('stk'),{attributes:true,attributeFilter:['data-code']});
 load().then(()=>{ patchBars(); chipBlock(); if(window.__renderIns) __renderIns(); }).catch(()=>{});
+})();
+</script>
+
+
+<style>
+.tn-card{display:flex;flex-direction:column;gap:10px}
+.tn-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.tn-top h2{font-size:18px}
+.tn-top .hint{margin-left:auto;font-size:11px}
+.tn-blk{display:flex;flex-direction:column;gap:3px}
+.tn-h{display:flex;align-items:center;gap:6px;font-size:13px}
+.tn-head{font-size:14.5px;font-weight:700;line-height:1.5}
+.tn-ln{display:block;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;font-size:13.5px;line-height:1.6;padding:3px 4px;margin:0 -4px;border-radius:6px;cursor:pointer}
+.tn-ln:hover{background:var(--hover)}
+.tn-ln b{font-weight:700}
+.tn-nw{display:block;font-size:11px;color:var(--tw);text-decoration:none;padding:0 4px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn-nw:hover{text-decoration:underline}
+.tn-watch{margin:0;padding-left:1.2em;font-size:13.5px;line-height:1.7}
+.tn-ai{font-size:13px;line-height:1.7;border-top:1px solid var(--line);padding-top:6px}
+.tn-ai summary{cursor:pointer;color:var(--tw);font-size:12.5px}
+.tn-ai p{margin:2px 0}
+.tn-ai a{color:var(--tw);text-decoration:none}
+.tn-more{align-self:stretch;font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:8px;padding:9px;cursor:pointer}
+/* 精簡模式：只留卡片，其他區塊收起來 */
+body.tn-compact .wrap>.bar,body.tn-compact .wrap>#sum,body.tn-compact .wrap>section:not(#tn-sec){display:none}
+</style>
+<script>
+(function(){
+const md=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+let compact=true; try{ compact=localStorage.getItem('tn-compact')!=='0'; }catch(e){}
+function setCompact(v){
+  compact=v; document.body.classList.toggle('tn-compact',v);
+  $('#tn-more').textContent=v?'看細節（產業熱度、成交值排行、法人明細、籌碼…）':'收起細節，只看三件事';
+  try{ localStorage.setItem('tn-compact',v?'1':'0'); }catch(e){}
+}
+const line=x=>`<button class="tn-ln"${x.stk?` data-stk="${esc(x.stk)}" data-m="${x.m==='us'?'us':'tw'}" data-name="${esc(x.name||x.stk)}"`:x.ind?` data-ind="${esc(x.ind)}" data-m="tw"`:''}>${md(x.t)}</button>`+
+  (x.nw?`<a class="tn-nw" href="${esc(x.nw.url)}" target="_blank" rel="noopener">新聞｜${esc(x.nw.title)}</a>`:'');
+function render(){
+  const T=window.STATS&&STATS.tonight; if(!T) return;
+  $('#tn-sec').hidden=false;
+  setCompact(compact);          // 卡片確定畫得出來才收起其他區塊（資料載入失敗時不會整頁空白）
+  $('#tn-twd').textContent=`台股 ${fmtD(T.tw_date)} 收盤後`;
+  $('#tn-usd').textContent=`美股 ${fmtD(T.us_date)} 收盤（台灣時間前一晚）`;
+  $('#tn-head').textContent=T.head;
+  $('#tn-tw').innerHTML=T.tw.map(line).join('');
+  $('#tn-us').innerHTML=T.us.map(line).join('')||'<div class="hint">美股資料未更新</div>';
+  $('#tn-watch').innerHTML=T.watch.map(w=>`<li>${esc(w)}</li>`).join('');
+  const live=TW&&TW.live&&TW.live.intraday;
+  $('#tn-meta').textContent=live?'這是上一個交易日的盤後重點；盤中即時請按「看細節」':'點任一行看個股或產業明細';
+  const I=window.INSIGHT, ai=I&&I.summary&&I.summary.source==='ai'&&I.facts&&I.facts.tw_date===T.tw_date;
+  $('#tn-ai').hidden=!I;
+  if(I){
+    $('#tn-ai-s').textContent=ai?`AI 盤後解讀全文（${I.summary.at}）`:`自動摘要全文（AI 解讀約 17:45 後產生）`;
+    $('#tn-ai-t').innerHTML=I.summary.text.split('\n').filter(Boolean).map(l=>`<p>${md(l)}</p>`).join('');
+  }
+}
+$('#tn-more').onclick=()=>{ setCompact(!compact); if(!compact) window.scrollTo({top:$('#tn-sec').offsetTop+$('#tn-sec').offsetHeight-60,behavior:'smooth'}); };
+// STATS／INSIGHT 由其他模組非同步載入，載好就畫
+let tries=0; (function wait(){ if(window.STATS&&STATS.tonight){ render(); if(!window.INSIGHT&&tries<40){ tries++; setTimeout(()=>{render();},500);} return; } if(tries++<60) setTimeout(wait,250); })();
+window.__renderTonight=render;
 })();
 </script>
 

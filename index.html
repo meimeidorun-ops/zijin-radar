@@ -195,6 +195,7 @@ td.r,th.r{text-align:right}
   <div class="card tn-card">
     <div class="tn-top"><h2>今晚三件事</h2><span class="hint" id="tn-meta"></span></div>
     <div class="tn-blk"><div class="tn-h"><span class="flag tw">TW</span><b id="tn-twd"></b></div><div class="tn-head" id="tn-head"></div><div id="tn-tw"></div></div>
+    <div class="tn-blk" id="tn-why-b"><div class="tn-h"><b>為什麼</b><span class="hint" id="tn-why-h"></span></div><div class="tn-why" id="tn-why"></div></div>
     <div class="tn-blk"><div class="tn-h"><span class="flag us">US</span><b id="tn-usd"></b></div><div id="tn-us"></div></div>
     <div class="tn-blk"><div class="tn-h"><b>明天看</b></div><ul class="tn-watch" id="tn-watch"></ul></div>
     <details class="tn-ai" id="tn-ai"><summary id="tn-ai-s"></summary><div id="tn-ai-t"></div></details>
@@ -1429,6 +1430,9 @@ load().then(()=>{ patchBars(); chipBlock(); if(window.__renderIns) __renderIns()
 .tn-ln b{font-weight:700}
 .tn-nw{display:block;font-size:11px;color:var(--tw);text-decoration:none;padding:0 4px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tn-nw:hover{text-decoration:underline}
+.tn-why{font-size:13px;line-height:1.65;color:var(--ink2)}
+.tn-why p{margin:2px 0}
+.tn-why a{color:var(--tw);text-decoration:none}
 .tn-watch{margin:0;padding-left:1.2em;font-size:13.5px;line-height:1.7}
 .tn-ai{font-size:13px;line-height:1.7;border-top:1px solid var(--line);padding-top:6px}
 .tn-ai summary{cursor:pointer;color:var(--tw);font-size:12.5px}
@@ -1462,6 +1466,11 @@ function render(){
   const live=TW&&TW.live&&TW.live.intraday;
   $('#tn-meta').textContent=live?'這是上一個交易日的盤後重點；盤中即時請按「看細節」':'點任一行看個股或產業明細';
   const I=window.INSIGHT, ai=I&&I.summary&&I.summary.source==='ai'&&I.facts&&I.facts.tw_date===T.tw_date;
+  // 「為什麼」只用 AI 讀過新聞後的判斷（關鍵字配對找得到相關新聞，但判斷不出是不是漲跌的原因，放上去會誤導）
+  const why=ai?I.summary.text.split('\n').filter(l=>l.includes('可能原因')).map(l=>{
+    const m=l.match(/^\*\*(.+?)\*\*：.*?可能原因：(.*)$/); return m?`<p><b>${esc(m[1])}</b>：${md(m[2])}</p>`:'';}).join(''):'';
+  $('#tn-why').innerHTML=why||`<p>${ai?'AI 解讀沒有找到明確相關的新聞。':'AI 讀新聞判斷的原因約 17:50 後提供（請確認 Claude App 有開著）。'}</p>`;
+  $('#tn-why-h').textContent=ai?`AI 讀當天新聞判斷，${I.summary.at}`:'';
   $('#tn-ai').hidden=!I;
   if(I){
     $('#tn-ai-s').textContent=ai?`AI 盤後解讀全文（${I.summary.at}）`:`自動摘要全文（AI 解讀約 17:45 後產生）`;

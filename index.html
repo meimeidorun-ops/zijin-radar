@@ -1027,10 +1027,14 @@ const ustwIt=(x,i)=>`<button class="ins-it" data-ustw="${i}"><b>${esc(x.group)}<
 const BT={vol:'成交值暴增',fb:'外資連買',tb:'投信連買',tf:'投信首度大買',fs:'外資連賣',ts:'投信連賣',rb:'法人逆勢買',rs:'法人逆勢賣',mi:'法人賣融資增',sb:'借券賣出大增'};
 function btLine(id){
   const T=window.STATS; if(!T) return '';
-  if(id==='sc'){ const b=T.score_bt||{}; return b.n?`一年回測（跟同流動性股票比）：分數前 10% 之後 5 日平均超額 ${pc(b.top_avg)}、後 10% ${pc(b.bot_avg)}，前 10% 有 ${b.top_hit}% 的日子跑贏｜判定「${b.verdict}」`:'回測樣本不足'; }
+  if(id==='sc'){ const b=T.score_bt||{}; if(!b.n) return '回測樣本不足';
+    return `一年回測（隔天收盤進場、跟同流動性股票比）：分數前 10% 之後 5 日平均超額 ${pc(b.top_avg)}、後 10% ${pc(b.bot_avg)}`+
+      (b.h1!=null?`；前後差 前半年 ${pc(b.h1)}、後半年 ${pc(b.h2)}`:'')+
+      (b.top_net!=null?`；前 10% 扣買賣成本 ${b.cost}% 後 ${pc(b.top_net)}`:'')+
+      `｜判定「${b.verdict}」`+(b.verdict==='有效'?'':'，只描述籌碼強弱，不能當選股依據'); }
   if(id==='ustw') return '相關係數＝美股族群前一晚漲跌與台股隔天對應族群漲跌的關聯（近 120 次，1＝完全同向、0＝無關）';
   const b=T.bt&&T.bt[BT[id]]; if(!b||!b.n5) return '';
-  return `一年回測（跟同流動性股票比，${b.n5} 次）：之後 5 日平均超額 ${pc(b.avg5)}、20 日 ${pc(b.avg20)}｜判定「${b.verdict}${b.horizon?`，${b.horizon} 日`:''}」`;
+  return `一年回測（隔天收盤進場、跟同流動性股票比，${b.n5} 次）：之後 5 日平均超額 ${pc(b.avg5)}、20 日 ${pc(b.avg20)}｜判定「${b.verdict}${b.horizon?`，${b.horizon} 日`:''}」`;
 }
 
 // 分類：[id, 標籤文字, 顏色, 市場, 取資料, 畫一項]
@@ -1081,7 +1085,9 @@ function renderIns(){
   if(mk&&mk.margin!=null) ln+=`｜融資 ${mk.margin.toLocaleString()} 億（${mk.margin_chg>0?'+':''}${mk.margin_chg}）`;
   if(T) ln+=`｜資料檢查：${T.health.length?`<span title="${esc(T.health.join('；'))}" style="color:var(--hot3)">${T.health.length} 項提醒</span>`:'正常'}`;
   $('#ins-mkt').innerHTML=ln;
-  $('#ins-hid').textContent=T&&T.hidden&&T.hidden.length?`一年回測沒有統計優勢、已隱藏：${T.hidden.join('、')}`:'';
+  $('#ins-hid').textContent=!(T&&T.hidden&&T.hidden.length)?'':T.hidden.length>=Object.keys(T.bt||{}).length
+    ?'個股訊號（法人連買連賣、首買、逆勢、量增、融資、借券）一年回測都沒有統計優勢，已全部隱藏'
+    :`一年回測沒有統計優勢、已隱藏：${T.hidden.join('、')}`;
 }
 window.__renderIns=renderIns;
 $('#ins-toggle').onclick=()=>{full=!full;renderIns();};

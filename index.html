@@ -1085,7 +1085,7 @@ function renderIns(){
   if(mk&&mk.margin!=null) ln+=`｜融資 ${mk.margin.toLocaleString()} 億（${mk.margin_chg>0?'+':''}${mk.margin_chg}）`;
   if(T) ln+=`｜資料檢查：${T.health.length?`<span title="${esc(T.health.join('；'))}" style="color:var(--hot3)">${T.health.length} 項提醒</span>`:'正常'}`;
   $('#ins-mkt').innerHTML=ln;
-  $('#ins-hid').textContent=!(T&&T.hidden&&T.hidden.length)?'':T.hidden.length>=Object.keys(T.bt||{}).length
+  $('#ins-hid').textContent=!(T&&T.hidden&&T.hidden.length)?'':Object.values(T.bt||{}).every(b=>b.verdict==='無統計優勢')
     ?'個股訊號（法人連買連賣、首買、逆勢、量增、融資、借券）一年回測都沒有統計優勢，已全部隱藏'
     :`一年回測沒有統計優勢、已隱藏：${T.hidden.join('、')}`;
 }
@@ -1409,10 +1409,10 @@ function chipBlock(){
   el.innerHTML=`<div class="stk-h3"><span>籌碼</span><small>${fmtD(STATS.asof)} 收盤後資料</small></div><div class="chip-grid">`+
     c('熱度分數',fz(z),'相對自己 20 日',z>=1?'up':z<=-1?'down':'')+
     c('周轉率',turn==null?'—':turn.toFixed(2)+'%','成交值÷市值')+
-    c('融資 5 日',mg5==null?'—':(mg5>0?'+':'')+mg5+'%',mg==null?'':'餘額 '+mg.toLocaleString()+' 張',mg5>=10?'up':mg5<=-10?'down':'')+
+    c('融資 5 日'+(STATS.mg_date&&STATS.mg_date!==STATS.asof?`（${fmtD(STATS.mg_date)}）`:''),mg5==null?'—':(mg5>0?'+':'')+mg5+'%',mg==null?'':'餘額 '+mg.toLocaleString()+' 張',mg5>=10?'up':mg5<=-10?'down':'')+
     c('借券賣出 5 日',sbl5==null?'—':(sbl5>0?'+':'')+sbl5.toLocaleString()+' 張',sbl==null?'':'餘額 '+sbl.toLocaleString()+' 張')+
     c('大戶持股',big==null?'—':big.toFixed(1)+'%','400 張以上｜'+(bigd==null?'週變化下週起':((bigd>0?'+':'')+bigd.toFixed(2)+' 點')))+
-    c('籌碼分數',score==null?'—':score.toFixed(2),score==null?'流動性不足未評分':'法人＋投信＋熱度＋動能−融資',score>=1?'up':score<=-1?'down':'')+
+    c('籌碼分數',score==null?'—':score.toFixed(2),score==null?'流動性不足未評分':((STATS.score_bt||{}).verdict==='有效'?'法人＋投信＋熱度＋動能−融資':'只描述籌碼強弱，回測無選股優勢'),score>=1?'up':score<=-1?'down':'')+
     `</div>`;
 }
 const _render=render; render=function(){ _render(); patchBars(); };

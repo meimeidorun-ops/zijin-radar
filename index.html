@@ -262,6 +262,7 @@ td.r,th.r{text-align:right}
       <div class="seg" role="group" aria-label="法人" id="flow-who">
         <button data-k="all" aria-pressed="true">合計</button><button data-k="0" aria-pressed="false">外資</button><button data-k="1" aria-pressed="false">投信</button><button data-k="2" aria-pressed="false">自營商</button>
       </div>
+      <div class="seg board-seg" role="group" aria-label="上市上櫃"></div>
     </div>
     <div class="duo">
       <div class="card"><h3><span class="flow-dot up-bg"></span>買超前 20</h3><div class="meta" id="flow-tw-meta"></div><div class="tscroll"><table id="flow-tw-buy"></table></div></div>
@@ -639,6 +640,26 @@ if(canHover){
 <script>
 (function(){
 let who='all', instP=null;
+// 上市／上櫃切換：法人買賣超排行與「成交值 Top 20」共用同一個選擇（記在這支手機上）
+const BOARD={all:'全部',tse:'上市',otc:'上櫃'};
+let board='all'; try{board=localStorage.getItem('tw-board')||'all';}catch(e){}
+if(!BOARD[board]) board='all';
+const inBoard=s=>board==='all'||(board==='otc'?s.m==='otc':s.m!=='otc');
+function boardSegs(){
+  document.querySelectorAll('.board-seg').forEach(g=>{
+    g.innerHTML=Object.entries(BOARD).map(([k,t])=>`<button data-b="${k}" aria-pressed="${board===k}">${t}</button>`).join('');
+    g.querySelectorAll('button').forEach(b=>b.onclick=()=>{board=b.dataset.b;try{localStorage.setItem('tw-board',board);}catch(e){} render();});
+  });
+}
+// 成交值 Top 20（母版畫的）也加一組切換，選上市／上櫃時重畫那張表
+const rankCard=document.getElementById('tw-stk')?.closest('.card');
+if(rankCard&&!rankCard.querySelector('.board-seg')){
+  const g=document.createElement('div'); g.className='seg board-seg'; g.setAttribute('role','group'); g.setAttribute('aria-label','上市上櫃'); g.style.margin='2px 0 6px';
+  rankCard.querySelector('.meta').before(g);
+}
+function rankTW(){
+  if(board!=='all'&&TW) window.table({...TW,stocks:TW.stocks.filter(inBoard)});
+}
 // 資料每天 [外資, 投信, 自營商自行, 自營商避險]；避險多為權證避險，與看多看空無關，合計不列入
 const WHO={all:'三大法人合計（不含避險）','0':'外資','1':'投信','2':'自營商（自行買賣）'};
 const f1=x=>{const a=Math.abs(x);return (x<0?'−':'')+(a>=100?a.toFixed(0):a>=10?a.toFixed(1):a.toFixed(2));};
@@ -690,9 +711,10 @@ function instAmts(){
 
 function flowTW(){
   if(!window.INST){$('#flow-tw-meta').textContent='載入中…';return;}
-  const days=INST.days, {list,period,chgHead}=instAmts();
+  const days=INST.days; let {list,period,chgHead}=instAmts();
   const chg=s=>s.ic, up=css('--up'), down=css('--down');
-  $('#flow-tw-meta').textContent=`${WHO[who]}｜${period}｜單位：億元`;
+  $('#flow-tw-meta').textContent=`${WHO[who]}｜${board==='all'?'上市＋上櫃':'只看'+BOARD[board]}｜${period}｜單位：億元`;
+  list=list.filter(inBoard);
   const buy=list.filter(s=>s.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,20);
   const sell=list.filter(s=>s.amt<0).sort((a,b)=>a.amt-b.amt).slice(0,20);
   table('#flow-tw-buy',TW,buy,s=>s.amt,s=>lots(s.lt),chg,up,'沒有買超個股',chgHead);
@@ -718,7 +740,7 @@ function flowUS(){
 }
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
-function flows(){ if(!TW||!US) return; try{flowTW();}catch(e){} try{flowUS();}catch(e){} }
+function flows(){ if(!TW||!US) return; boardSegs(); try{rankTW();}catch(e){} try{flowTW();}catch(e){} try{flowUS();}catch(e){} }
 document.querySelectorAll('#flow-who button').forEach(b=>b.onclick=()=>{
   who=b.dataset.k; document.querySelectorAll('#flow-who button').forEach(x=>x.setAttribute('aria-pressed',x===b)); flowTW();
 });

@@ -271,7 +271,7 @@ td.r,th.r{text-align:right}
     <div class="card" style="margin-top:16px"><h3>法人資金流進／流出哪些產業</h3><div class="meta">各產業個股買賣超金額加總（億元），點產業看相關個股</div><div class="fi-wrap" id="flow-tw-ind"></div></div>
   </div>
   <div data-mk="us" class="flow-block">
-    <div class="flow-bar"><span class="flag us">US</span><b>帶量上漲／帶量下跌</b><span class="hint">美股沒有公開的法人買賣資料，這裡是推估</span></div>
+    <div class="flow-bar"><span class="flag us">US</span><b>帶量上漲／帶量下跌</b><span class="hint">美股沒有公開的法人買賣資料，這裡是推估</span><div class="seg uboard-seg" role="group" aria-label="美股交易所"></div></div>
     <div class="duo">
       <div class="card"><h3><span class="flow-dot up-bg"></span>量大上漲：漲 ≥ 1% 的成交值前 20</h3><div class="meta" id="flow-us-meta"></div><div class="tscroll"><table id="flow-us-buy"></table></div></div>
       <div class="card"><h3><span class="flow-dot down-bg"></span>量大下跌：跌 ≥ 1% 的成交值前 20</h3><div class="meta">單位：億美元｜上漲時成交越大，通常代表買方越積極，反之亦然</div><div class="tscroll"><table id="flow-us-sell"></table></div></div>
@@ -345,7 +345,7 @@ async function twCollect(have,opts){
 }
 
 const sum0=a=>a.reduce((x,y)=>x+(y||0),0);
-const toS=r=>({code:r[0],name:r[1],ind:r[2],v:r[3],d1:r[4],d5:r[5],last:r[6],sum:sum0(r[3])});
+const toS=r=>({code:r[0],name:r[1],ind:r[2],v:r[3],d1:r[4],d5:r[5],last:r[6],ex:r[7],sum:sum0(r[3])});   // ex：美股交易所 ny＝紐約證交所、nq＝那斯達克
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){
   try{Object.keys(localStorage).filter(x=>x.startsWith('tw2:')).sort().slice(0,5).forEach(x=>localStorage.removeItem(x));localStorage.setItem(k,JSON.stringify(v))}catch(e2){}}}
@@ -660,6 +660,27 @@ if(rankCard&&!rankCard.querySelector('.board-seg')){
 function rankTW(){
   if(board!=='all'&&TW) window.table({...TW,stocks:TW.stocks.filter(inBoard)});
 }
+// 美股：全部／紐約證交所／那斯達克（ex 欄位：ny、nq），一樣兩張表共用、記在手機上
+const UBOARD={all:'全部',ny:'紐約證交所',nq:'那斯達克'};
+let uboard='all'; try{uboard=localStorage.getItem('us-board')||'all';}catch(e){}
+if(!UBOARD[uboard]) uboard='all';
+const inUBoard=s=>uboard==='all'||s.ex===uboard;
+const usRankCard=document.getElementById('us-stk')?.closest('.card');
+if(usRankCard&&!usRankCard.querySelector('.uboard-seg')){
+  const g=document.createElement('div'); g.className='seg uboard-seg'; g.setAttribute('role','group'); g.setAttribute('aria-label','美股交易所'); g.style.margin='2px 0 6px';
+  usRankCard.querySelector('.meta').before(g);
+}
+function uboardSegs(){
+  const has=US&&US.stocks.some(s=>s.ex);       // 舊資料沒有交易所欄位就不顯示
+  document.querySelectorAll('.uboard-seg').forEach(g=>{
+    g.hidden=!has;
+    g.innerHTML=Object.entries(UBOARD).map(([k,t])=>`<button data-b="${k}" aria-pressed="${uboard===k}">${t}</button>`).join('');
+    g.querySelectorAll('button').forEach(b=>b.onclick=()=>{uboard=b.dataset.b;try{localStorage.setItem('us-board',uboard);}catch(e){} render();});
+  });
+}
+function rankUS(){
+  if(uboard!=='all'&&US) window.table({...US,stocks:US.stocks.filter(inUBoard)});
+}
 // 資料每天 [外資, 投信, 自營商自行, 自營商避險]；避險多為權證避險，與看多看空無關，合計不列入
 const WHO={all:'三大法人合計（不含避險）','0':'外資','1':'投信','2':'自營商（自行買賣）'};
 const f1=x=>{const a=Math.abs(x);return (x<0?'−':'')+(a>=100?a.toFixed(0):a>=10?a.toFixed(1):a.toFixed(2));};
@@ -732,15 +753,16 @@ function flowTW(){
 function flowUS(){
   // 漲跌幅至少 1% 才列入，避免小漲 0.01% 也被當成「買盤積極」
   const v=s=>mode==='today'?s.v[4]:s.sum, chg=s=>mode==='today'?s.d1:s.d5, TH=1;
-  const up=US.stocks.filter(s=>chg(s)>=TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
-  const dn=US.stocks.filter(s=>chg(s)<=-TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
-  $('#flow-us-meta').textContent=`${mode==='today'?fmtD(US.days[4])+' 單日':'近 5 日累計'}｜單位：億美元`;
+  const L=US.stocks.filter(inUBoard);
+  const up=L.filter(s=>chg(s)>=TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  const dn=L.filter(s=>chg(s)<=-TH).sort((a,b)=>v(b)-v(a)).slice(0,20);
+  $('#flow-us-meta').textContent=`${mode==='today'?fmtD(US.days[4])+' 單日':'近 5 日累計'}｜${uboard==='all'?'':'只看'+UBOARD[uboard]+'｜'}單位：億美元`;
   table('#flow-us-buy',US,up,s=>v(s)/100,null,chg,css('--up'),'沒有漲 1% 以上的個股');
   table('#flow-us-sell',US,dn,s=>v(s)/100,null,chg,css('--down'),'沒有跌 1% 以上的個股');
 }
 const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
-function flows(){ if(!TW||!US) return; boardSegs(); try{rankTW();}catch(e){} try{flowTW();}catch(e){} try{flowUS();}catch(e){} }
+function flows(){ if(!TW||!US) return; boardSegs(); uboardSegs(); try{rankTW();}catch(e){} try{rankUS();}catch(e){} try{flowTW();}catch(e){} try{flowUS();}catch(e){} }
 document.querySelectorAll('#flow-who button').forEach(b=>b.onclick=()=>{
   who=b.dataset.k; document.querySelectorAll('#flow-who button').forEach(x=>x.setAttribute('aria-pressed',x===b)); flowTW();
 });
